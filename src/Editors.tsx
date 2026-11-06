@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { SavingsEstimate } from "./SavingsEstimate";
-import { savingsStartDate, updateMaturity } from "./maturity";
+import { savingsStartDate } from "./maturity";
+import { changeRecordField, recordDraft } from "./recordDraft";
 import { api } from "./api";
 import {
   recordFields,
@@ -83,8 +84,7 @@ export function EditorDialog({
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   const [projection, setProjection] = useState<Record<string, string>>(() =>
-    editor.mode === "record" && editor.kind === "savings"
-      ? updateMaturity(recordValues(editor.record, recordFields("savings", data.records))) : {});
+    editor.mode === "record" ? recordDraft(editor.kind,data.records,editor.record) : {});
   useEffect(() => {
     dialog.current?.showModal();
     const onCancel = (e: Event) => {
@@ -118,16 +118,18 @@ export function EditorDialog({
       </div>
       {editor.mode === "record" ? (
         <>
-          <p className="note">{notes[editor.kind]}</p>
+          <p className="note">{editor.kind === "savings" ? projection.type === "DPS" ? "The monthly estimate uses the contracted installments. Opening balance tracks money saved before your recorded transactions and is not added a second time to the contract projection." : projection.type === "FDR" ? "Deposit amount is the principal used for the maturity estimate. Opening balance is the amount already held before your recorded transactions. Record funding and withdrawals separately." : projection.type === "SIP" ? "Expected returns are estimates and can be negative. Initial investment is money invested before your recorded contributions." : "Set a target and saving schedule. No interest assumptions are required." : notes[editor.kind]}</p>
           <form
             onSubmit={async (e) => {
               e.preventDefault();
               setError("");
               setBusy(true);
               try {
-                const values = Object.fromEntries(
+                const formValues = Object.fromEntries(
                   new FormData(e.currentTarget),
                 ) as Record<string, string>;
+                const values = editor.kind === "savings" ? {...projection,name:formValues.name} : formValues;
+                if(editor.kind === "loans" && projection.type === "Family / friend" && projection.interest_bearing !== "yes") values.rate="0";
                 const name = values.name;
                 delete values.name;
                 await api(
@@ -154,12 +156,12 @@ export function EditorDialog({
                   defaultValue={editor.record?.name}
                 />
               </label>
-              {recordFields(editor.kind, data.records).filter(f => editor.kind !== "savings" || projection.maturity_mode === "duration" || !["term_value", "term_unit"].includes(f.name)).map((f) => (
+              {recordFields(editor.kind, data.records,projection).map((f) => (
                 <FieldInput
                   key={f.name}
                   f={editor.kind === "savings" && f.name === "term_value" ? { ...f, max: projection.term_unit === "years" ? "100" : "1200" } : f}
-                  value={editor.kind === "savings" ? projection[f.name] ?? "" : undefined}
-                  onChange={editor.kind === "savings" ? value => setProjection(previous => updateMaturity({ ...previous, [f.name]: value })) : undefined}
+                  value={projection[f.name] ?? ""}
+                  onChange={value => setProjection(previous => changeRecordField(editor.kind,data.records,previous,f.name,value))}
                   readOnly={editor.kind === "savings" && f.name === "maturity" && projection.maturity_mode === "duration"}
                   defaultValue={
                     recordValues(
@@ -171,7 +173,7 @@ export function EditorDialog({
               ))}
             </div>
             {editor.kind === "savings" && <>
-              <p className="sub">{projection.maturity_mode === "duration" ? `Maturity is calculated from ${savingsStartDate(projection) ?? "the first scheduled month and due day"} + ${projection.term_value} ${projection.term_unit}. Shorter months use their last valid day. Scheduled deposits stop before maturity day.` : "The exact date is preserved. Use the date on your bank or investment agreement."} The projection start date only controls return estimates; it does not restart the plan’s term.</p>
+              <p className="sub">{projection.maturity_mode === "duration" ? `Maturity: ${savingsStartDate(projection) ?? "opening date"} + ${projection.term_value} ${projection.term_unit}. Shorter months use their last valid day.` : "Use the maturity date in your agreement."} Payment day does not change the opening date.</p>
               <SavingsEstimate data={projection} transactions={data.transactions} planId={editor.record?.id} />
             </>}
             {error && (
@@ -201,9 +203,9 @@ export function EditorDialog({
   );
 }
 const typeOptions: [TxType, string][] = [
-  ["expense", "Expense / card purchase"],
+  ["expense", "Expense"],
   ["income", "Income received"],
-  ["loan_payment", "Loan EMI / repayment"],
+  ["loan_payment", "Loan repayment"],
   ["card_payment", "Credit card repayment"],
   ["saving", "Savings contribution"],
   ["savings_withdrawal", "Savings withdrawal"],
@@ -237,7 +239,7 @@ function TransactionForm({
     { name: "name", label: "Description", required: true },
     {
       name: "amount",
-      label: "Amount (৳)",
+      label: ({income:"Income amount",expense:"Expense amount",loan_payment:"Repayment amount",card_payment:"Payment amount",saving:"Contribution amount",savings_withdrawal:"Withdrawal amount",transfer:"Transfer amount",loan_received:"Disbursement amount"}[type]) + " (৳)",
       type: "number",
       min: "0.01",
       max: "9999999999.99",
@@ -251,8 +253,8 @@ function TransactionForm({
         type === "income" ||
         type === "loan_received" ||
         type === "savings_withdrawal"
-          ? "Receive into"
-          : "Pay from",
+          ? "Receiving account"
+          : type === "transfer" ? "Source account" : "Payment account",
       options: [
         ...options("accounts"),
         ...(type === "expense" ? options("cards") : []),
@@ -264,7 +266,7 @@ function TransactionForm({
     fields.push({
       name: "category",
       label: "Category",
-      options: categories.map((s) => [s, s]),
+      options: (type === "income" ? ["Salary","Business","Freelance","Rental income","Investment return","Other"] : categories.filter(c=>!["Salary","Freelance","Savings"].includes(c))).map((s) => [s, s]),
       required: true,
     });
   if (type === "transfer")

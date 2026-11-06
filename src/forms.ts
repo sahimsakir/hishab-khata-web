@@ -1,4 +1,4 @@
-import type { Kind, MoneyRecord } from "./types";
+import type { Data, Kind, MoneyRecord } from "./types";
 import { decimal, today } from "./money";
 import { growthMethods } from "./savings";
 export const categories = [
@@ -81,14 +81,18 @@ export const kindSingular: Record<Kind, string> = {
   bills: "recurring bill",
   budgets: "budget",
 };
-export function recordFields(kind: Kind, records: MoneyRecord[]): Field[] {
+export function recordFields(kind: Kind, records: MoneyRecord[], values: Data = {}): Field[] {
   const account: Field = {
     ...text("account_id", "Money account"),
     options: records
       .filter((r) => r.kind === "accounts")
       .map((r) => [r.id, r.name]),
   };
-  return (
+  const type = String(values.type ?? "");
+  const frequency: Field = {name:"frequency",label:"Frequency",options:[["monthly","Monthly"],["once","One-time"]],required:true};
+  const timing = values.frequency === "once" ? [{name:"payment_date",label:kind === "incomes" ? "Receipt date" : "Payment date",type:"date",required:true}] : schedule;
+  const incomeExtra: Record<string, string> = {Salary:"Employer", "Business profit":"Business name", Freelance:"Client", "Rental income":"Property", "Dividend / interest":"Institution"};
+  const fields = (
     {
       accounts: [
         select("type", "Account type", [
@@ -98,6 +102,7 @@ export function recordFields(kind: Kind, records: MoneyRecord[]): Field[] {
           "Business account",
           "Other",
         ]),
+        ...(["Bank","Business account"].includes(type) ? [text("institution", "Bank")] : type === "Mobile wallet" ? [text("institution", "Provider")] : []),
         amount("opening", "Opening balance"),
       ],
       incomes: [
@@ -109,15 +114,18 @@ export function recordFields(kind: Kind, records: MoneyRecord[]): Field[] {
           "Dividend / interest",
           "Other",
         ]),
-        amount("amount", "Expected monthly income"),
-        account,
-        ...schedule,
+        ...(incomeExtra[type] ? [{name:"payer",label:incomeExtra[type],required:false}] : []),
+        amount("amount", type === "Salary" ? "Salary" : type === "Business profit" ? "Net profit" : type === "Rental income" ? "Rent" : type === "Dividend / interest" ? "Return" : "Income amount"),
+        {...account,label:"Receiving account"},
+        frequency,
+        ...timing,
       ],
       bills: [
-        amount("amount", "Monthly bill"),
+        amount("amount", "Bill amount"),
         select("category", "Category", categories),
-        account,
-        ...schedule,
+        {...account,label:"Payment account"},
+        frequency,
+        ...timing,
       ],
       loans: [
         select("type", "Loan type", [
@@ -130,18 +138,19 @@ export function recordFields(kind: Kind, records: MoneyRecord[]): Field[] {
           "Credit card EMI",
           "Other",
         ]),
-        text("lender", "Bank / lender / person"),
+        text("lender", type === "Family / friend" ? "Lender" : "Bank"),
         amount("opening", "Opening principal outstanding"),
         amount("emi", "Monthly EMI"),
-        {
+        ...(type === "Family / friend" ? [{name:"interest_bearing",label:"Interest",options:[["no","Interest-free"],["yes","Interest-bearing"]],required:true} as Field] : []),
+        ...((type !== "Family / friend" || (values.interest_bearing === "yes" || (!values.interest_bearing && Number(values.rate) > 0))) ? [{
           name: "rate",
-          label: "Annual interest rate (%) — reference",
+          label: "Annual interest rate (%)",
           type: "number",
           min: "0",
           max: "100",
           step: "0.01",
           required: true,
-        },
+        } as Field] : []),
         ...schedule.filter((f) => f.name !== "end"),
         {
           name: "term",
@@ -153,7 +162,7 @@ export function recordFields(kind: Kind, records: MoneyRecord[]): Field[] {
         },
       ],
       cards: [
-        text("bank", "Bank / provider"),
+        text("bank", "Bank"),
         amount("limit", "Credit limit"),
         amount("opening", "Opening outstanding"),
         amount("statement", "Current statement balance"),
@@ -171,33 +180,47 @@ export function recordFields(kind: Kind, records: MoneyRecord[]): Field[] {
           required: true,
         },
       ],
-      savings: [
-        select("type", "Savings type", ["DPS", "FDR", "SIP", "Goal"]),
-        text("bank", "Bank / institution"),
-        amount("target", "Target / principal"),
-        amount("opening", "Opening saved balance"),
-        amount("monthly", "Monthly contribution"),
-        { name: "annual_rate", label: "Annual interest / expected SIP return (%)", type: "number", min: "-99.99", max: "100", step: "0.01", required: true },
-        { name: "compounding", label: "Growth calculation", options: growthMethods, required: true },
-        { name: "projection_start", label: "Return projection start date", type: "date", required: true },
-        ...schedule.filter((f) => f.name !== "end").map(f => ({ ...f, label: f.name === "start" ? "Plan start month" : "Deposit / contribution due day" })),
-        { name: "maturity_mode", label: "Maturity setup", options: [["duration", "Calculate from duration"], ["exact", "Enter exact date"]], required: true },
-        { name: "term_value", label: "Maturity duration", type: "number", min: "1", max: "1200", step: "1", required: true },
-        { name: "term_unit", label: "Duration unit", options: [["months", "Months"], ["years", "Years"]], required: true },
-        {
-          name: "maturity",
-          label: "Maturity / target date",
-          type: "date",
-          required: true,
-        },
-      ],
+      savings: investmentFields(values),
       budgets: [
         select("category", "Category", categories),
         amount("limit", "Monthly limit"),
       ],
     } satisfies Record<Kind, Field[]>
   )[kind];
+  const optionLabels: Record<string,string> = {"Family / friend":"Personal lender","Dividend / interest":"Investment return","Goal":"Savings goal"};
+  return fields.map(f => f.options ? {...f,options:f.options.map(([key,label]) => [key,optionLabels[label] ?? label])} : f);
 }
+
+export function investmentFields(values: Data): Field[] {
+  const type = String(values.type ?? "DPS");
+  const goal = type === "Goal", fdr = type === "FDR", sip = type === "SIP";
+  const monthly = !goal && !fdr && (values.calculation_basis ?? "monthly_installments") === "monthly_installments";
+  return [
+    select("type", "Investment type", ["DPS","FDR","SIP","Goal"]),
+    ...(!goal ? [text("bank", sip ? "Fund manager" : "Bank")] : []),
+    ...(fdr ? [amount("target","Deposit amount")] : goal ? [amount("target","Target amount")] : []),
+    amount("opening", sip ? "Initial investment" : "Opening balance"),
+    ...(!fdr ? [amount("monthly", sip ? "Monthly investment" : goal ? "Monthly saving" : "Monthly installment")] : []),
+    {name:"opening_date",label:sip ? "Investment start date" : goal ? "Start date" : "Opening date",type:"date",required:true},
+    ...(!fdr ? [
+      {name:"first_payment",label:sip ? "First investment date" : goal ? "First saving date" : "First installment date",type:"date",required:true} as Field,
+      {name:"day",label:sip ? "Investment day" : goal ? "Saving day" : "Payment day",type:"number",min:"1",max:"31",step:"1",required:true} as Field,
+    ] : []),
+    {name:"maturity_mode",label:"Maturity method",options:[["duration","Tenure"],["exact","Exact date"]],required:true},
+    ...(values.maturity_mode === "exact" ? [] : [
+      {name:"term_value",label:"Tenure",type:"number",min:"1",max:values.term_unit === "years" ? "100" : "1200",step:"1",required:true} as Field,
+      {name:"term_unit",label:"Tenure unit",options:[["months","Months"],["years","Years"]],required:true} as Field,
+    ]),
+    {name:"maturity",label:goal ? "Target date" : sip ? "Investment end date" : "Maturity date",type:"date",required:true},
+    ...(!goal ? [{name:"annual_rate",label:sip ? "Expected annual return (%)" : "Annual interest rate (%)",type:"number",min:sip ? "-99.99" : "0",max:"100",step:"0.01",required:true} as Field] : []),
+    ...(!fdr && !goal ? [{name:"calculation_basis",label:"Calculation method",options:[["monthly_installments","Monthly installments"],["actual_days","Actual days"]],required:true} as Field] : []),
+    ...(monthly ? [{name:"payment_timing",label:sip ? "Investment timing" : "Installment timing",options:[["beginning","Beginning of month"],["end","End of month"]],required:true} as Field] : !goal ? [
+      {name:"compounding",label:"Interest method",options:growthMethods,required:true} as Field,
+      ...(!fdr ? [{name:"projection_start",label:"Projection date",type:"date",required:true} as Field] : []),
+    ] : []),
+  ];
+}
+
 export function recordValues(
   record: MoneyRecord | undefined,
   fields: Field[],
@@ -208,6 +231,12 @@ export function recordValues(
       if (f.name in (record?.data ?? {})) return [f.name, String(v ?? "")];
       if (record?.data[f.name + "_paisa"] !== undefined)
         return [f.name, decimal(Number(record.data[f.name + "_paisa"]))];
+      if (f.name === "calculation_basis") return [f.name,"monthly_installments"];
+      if (f.name === "payment_timing") return [f.name,"beginning"];
+      if (f.name === "frequency") return [f.name,"monthly"];
+      if (f.name === "interest_bearing") return [f.name, Number(record?.data.rate ?? 0) > 0 ? "yes" : "no"];
+      if (f.name === "opening_date") return [f.name, String(record?.data.projection_start ?? (record?.data.start ? String(record.data.start)+"-01" : today()))];
+      if (f.name === "first_payment") return [f.name, String(record?.data.opening_date ?? record?.data.projection_start ?? today())];
       if (f.name === "start") return [f.name, today().slice(0, 7)];
       if (f.name === "maturity_mode") return [f.name, record ? "exact" : "duration"];
       if (f.name === "term_value") return [f.name, "3"];

@@ -1,8 +1,9 @@
 import { parseMoney } from "./money";
 import type { Data, Transaction } from "./types";
+import { investmentMonths } from "./maturity";
 
 export const growthMethods = [
-  ["simple", "Simple interest / no reinvestment"],
+  ["simple", "Simple interest"],
   ["monthly", "Compound monthly"],
   ["quarterly", "Compound quarterly"],
   ["yearly", "Compound yearly"],
@@ -43,6 +44,17 @@ export function projectSavings(data: Data, transactions: readonly Transaction[] 
         t.type === "savings_withdrawal" ? -t.amount_paisa : 0), 0) : 0;
     const opening = paisa("opening") + historicalMovement, monthly = paisa("monthly");
     if (![opening, monthly].every(n => Number.isSafeInteger(n) && n >= 0)) return null;
+    if (data.calculation_basis === "monthly_installments" && ["DPS", "SIP"].includes(String(data.type))) {
+      const months = investmentMonths(data);
+      if (!months || monthly <= 0) return null;
+      const monthlyRate = rate / 100 / 12;
+      const initial = data.type === "SIP" ? paisa("opening") : 0;
+      const accumulated = monthlyRate === 0 ? monthly * months : monthly * Math.expm1(months * Math.log1p(monthlyRate)) / monthlyRate;
+      const value = initial * Math.pow(1 + monthlyRate, months) + accumulated * (data.payment_timing === "end" ? 1 : 1 + monthlyRate);
+      const principal = initial + monthly * months, maturity = Math.round(value);
+      if (!Number.isSafeInteger(principal) || !Number.isSafeInteger(maturity) || maturity < 0) return null;
+      return {principal,maturity,gain:maturity-principal,returnPercent:(maturity-principal)/principal*100,contributions:months,annualRate:rate};
+    }
     // FDR principal is the planned lump sum; opening balance is not added again.
     const initial = data.type === "FDR" ? paisa("target") : opening;
     if (data.type === "FDR" && monthly !== 0) return null;
@@ -60,11 +72,12 @@ export function projectSavings(data: Data, transactions: readonly Transaction[] 
     for (let i = 0; monthly > 0 && i <= 1200; i++, cursor++) {
       const y = Math.floor(cursor / 12), m = cursor % 12;
       const due = Date.UTC(y, m, Math.min(day, new Date(Date.UTC(y, m + 1, 0)).getUTCDate()));
-      if (due > end || (data.maturity_mode === "duration" && due === end) || (data.end && `${y}-${String(m + 1).padStart(2, "0")}` > String(data.end))) break;
+      const deposit = cursor === year * 12 + month - 1 && data.first_payment ? date(String(data.first_payment)) : due;
+      if (deposit > end || (data.maturity_mode === "duration" && deposit === end) || (data.end && `${y}-${String(m + 1).padStart(2, "0")}` > String(data.end))) break;
       // Opening balance includes everything before projection start; same-day deposits are included.
-      if (due < start) continue;
+      if (deposit < start) continue;
       principal += monthly;
-      value += monthly * factor((end - due) / 86400000);
+      value += monthly * factor((end - deposit) / 86400000);
       count++;
     }
     const maturity = Math.round(value);

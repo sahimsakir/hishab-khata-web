@@ -902,7 +902,7 @@ function RecordPage(p: Shared & { kind: Kind }) {
                   <Details
                     items={[
                       ["Monthly EMI", money(n(r, "emi_paisa"))],
-                      ["Annual rate (reference)", s(r, "rate") + "%"],
+                      ["Annual interest rate", s(r, "rate") + "%"],
                       ["Due day", s(r, "day") + " each month"],
                       [
                         "First month / term",
@@ -949,10 +949,8 @@ function RecordPage(p: Shared & { kind: Kind }) {
               {kind === "incomes" && (
                 <Details
                   items={[
-                    ["Due day", s(r, "day") + " each month"],
+                    ...(s(r, "frequency") === "once" ? [["Receipt date", s(r,"payment_date")]] as [string,string][] : [["Payment day",s(r,"day")],["First month",s(r,"start")],["Last month",s(r,"end") || "Ongoing"]] as [string,string][]),
                     ["Received this month", money(received)],
-                    ["First month", s(r, "start")],
-                    ["Last month", s(r, "end") || "Ongoing"],
                   ]}
                 />
               )}{" "}
@@ -961,11 +959,11 @@ function RecordPage(p: Shared & { kind: Kind }) {
                   <Progress value={bal} max={n(r, "target_paisa")} />
                   <Details
                     items={[
-                      ["Target", money(n(r, "target_paisa"))],
-                      ["Monthly contribution", money(n(r, "monthly_paisa"))],
-                      ["Contribution due day", s(r, "day")],
-                      ["Maturity / target date", s(r, "maturity")],
-                      ["Maturity setup", s(r, "maturity_mode") === "duration" ? `${s(r, "term_value")} ${s(r, "term_unit")} from first due date` : "Exact date"],
+                      [s(r,"type") === "FDR" ? "Deposit amount" : s(r,"type") === "Goal" ? "Target amount" : "Planned contributions", money(n(r, "target_paisa"))],
+                      ...(s(r,"type") === "FDR" ? [] : [[s(r,"type") === "SIP" ? "Monthly investment" : s(r,"type") === "DPS" ? "Monthly installment" : "Monthly saving",money(n(r,"monthly_paisa"))],["Payment day",s(r,"day")]] as [string,string][]),
+                      ["Opening date", s(r,"opening_date") || s(r,"start")],
+                      [s(r,"type") === "Goal" ? "Target date" : "Maturity date", s(r, "maturity")],
+                      ["Tenure", s(r, "maturity_mode") === "duration" ? `${s(r, "term_value")} ${s(r, "term_unit")}` : "Exact date"],
                     ]}
                   />
                   <SavingsEstimate data={r.data} transactions={data.transactions} planId={r.id} />
