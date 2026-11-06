@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { SavingsEstimate } from "./SavingsEstimate";
+import { savingsStartDate, updateMaturity } from "./maturity";
 import { api } from "./api";
 import {
   recordFields,
@@ -28,7 +29,7 @@ export type Editor =
       defaults?: Partial<TxInput>;
       due?: Due;
     };
-function FieldInput({ f, defaultValue }: { f: Field; defaultValue?: string }) {
+function FieldInput({ f, defaultValue, value, onChange, readOnly }: { f: Field; defaultValue?: string; value?: string; onChange?: (value: string) => void; readOnly?: boolean }) {
   return (
     <label>
       {f.label}
@@ -36,7 +37,9 @@ function FieldInput({ f, defaultValue }: { f: Field; defaultValue?: string }) {
         <select
           name={f.name}
           required={f.required}
-          defaultValue={defaultValue}
+          defaultValue={value === undefined ? defaultValue : undefined}
+          value={value}
+          onChange={onChange ? (e) => onChange(e.target.value) : undefined}
           aria-label={f.label}
         >
           {!f.required && <option value="">None</option>}
@@ -52,7 +55,10 @@ function FieldInput({ f, defaultValue }: { f: Field; defaultValue?: string }) {
           name={f.name}
           type={f.type || "text"}
           required={f.required}
-          defaultValue={defaultValue}
+          defaultValue={value === undefined ? defaultValue : undefined}
+          value={value}
+          onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+          readOnly={readOnly}
           min={f.min}
           max={f.max}
           step={f.step}
@@ -78,7 +84,7 @@ export function EditorDialog({
     [busy, setBusy] = useState(false);
   const [projection, setProjection] = useState<Record<string, string>>(() =>
     editor.mode === "record" && editor.kind === "savings"
-      ? recordValues(editor.record, recordFields("savings", data.records)) : {});
+      ? updateMaturity(recordValues(editor.record, recordFields("savings", data.records))) : {});
   useEffect(() => {
     dialog.current?.showModal();
     const onCancel = (e: Event) => {
@@ -114,9 +120,6 @@ export function EditorDialog({
         <>
           <p className="note">{notes[editor.kind]}</p>
           <form
-            onChange={(e) => {
-              if (editor.kind === "savings") setProjection(Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>);
-            }}
             onSubmit={async (e) => {
               e.preventDefault();
               setError("");
@@ -151,10 +154,13 @@ export function EditorDialog({
                   defaultValue={editor.record?.name}
                 />
               </label>
-              {recordFields(editor.kind, data.records).map((f) => (
+              {recordFields(editor.kind, data.records).filter(f => editor.kind !== "savings" || projection.maturity_mode === "duration" || !["term_value", "term_unit"].includes(f.name)).map((f) => (
                 <FieldInput
                   key={f.name}
-                  f={f}
+                  f={editor.kind === "savings" && f.name === "term_value" ? { ...f, max: projection.term_unit === "years" ? "100" : "1200" } : f}
+                  value={editor.kind === "savings" ? projection[f.name] ?? "" : undefined}
+                  onChange={editor.kind === "savings" ? value => setProjection(previous => updateMaturity({ ...previous, [f.name]: value })) : undefined}
+                  readOnly={editor.kind === "savings" && f.name === "maturity" && projection.maturity_mode === "duration"}
                   defaultValue={
                     recordValues(
                       editor.record,
@@ -164,7 +170,10 @@ export function EditorDialog({
                 />
               ))}
             </div>
-            {editor.kind === "savings" && <SavingsEstimate data={projection} transactions={data.transactions} planId={editor.record?.id} />}
+            {editor.kind === "savings" && <>
+              <p className="sub">{projection.maturity_mode === "duration" ? `Maturity is calculated from ${savingsStartDate(projection) ?? "the first scheduled month and due day"} + ${projection.term_value} ${projection.term_unit}. Shorter months use their last valid day. Scheduled deposits stop before maturity day.` : "The exact date is preserved. Use the date on your bank or investment agreement."} The projection start date only controls return estimates; it does not restart the plan’s term.</p>
+              <SavingsEstimate data={projection} transactions={data.transactions} planId={editor.record?.id} />
+            </>}
             {error && (
               <div className="error" role="alert">
                 {error}

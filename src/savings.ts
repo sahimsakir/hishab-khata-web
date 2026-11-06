@@ -60,7 +60,7 @@ export function projectSavings(data: Data, transactions: readonly Transaction[] 
     for (let i = 0; monthly > 0 && i <= 1200; i++, cursor++) {
       const y = Math.floor(cursor / 12), m = cursor % 12;
       const due = Date.UTC(y, m, Math.min(day, new Date(Date.UTC(y, m + 1, 0)).getUTCDate()));
-      if (due > end || (data.end && `${y}-${String(m + 1).padStart(2, "0")}` > String(data.end))) break;
+      if (due > end || (data.maturity_mode === "duration" && due === end) || (data.end && `${y}-${String(m + 1).padStart(2, "0")}` > String(data.end))) break;
       // Opening balance includes everything before projection start; same-day deposits are included.
       if (due < start) continue;
       principal += monthly;

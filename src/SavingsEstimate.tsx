@@ -16,7 +16,7 @@ export function SavingsEstimate({ data, transactions, planId }: { data: Data; tr
       <div><dt>Total return (not annual)</dt><dd>{estimate.returnPercent.toFixed(2)}%</dd></div>
       <div><dt>Scheduled deposits included</dt><dd>{estimate.contributions}</dd></div>
     </dl>
-    <p className="sub">{growthMethods.find(([key]) => key === data.compounding)?.[1] ?? "Compound monthly"}. From {String(data.projection_start)} to {String(data.maturity)}. Actual days / 365; compound formulas use fractional periods. Before taxes and fees. {data.type === "FDR" ? "Uses target/principal as the planned lump sum." : "Includes opening savings and recorded contributions/withdrawals before the projection start."} Assumes subsequent scheduled deposits are paid on their due dates, including any due on maturity day.</p>
+    <p className="sub">{growthMethods.find(([key]) => key === data.compounding)?.[1] ?? "Compound monthly"}. From {String(data.projection_start)} to {String(data.maturity)}. Actual days / 365; compound formulas use fractional periods. Before taxes and fees. {data.type === "FDR" ? "Uses target/principal as the planned lump sum." : "Includes opening savings and recorded contributions/withdrawals before the projection start."} Assumes subsequent scheduled deposits are paid on their due dates{data.maturity_mode === "duration" ? " before maturity day." : ", including any due on maturity day."}</p>
     <p className="sub">{sip ? "SIP returns are an assumption, not guaranteed interest; actual investments can lose value." : "Indicative estimate; your bank’s calculation and payout terms may differ."} Projections do not change your recorded balance.</p>
   </section>;
 }

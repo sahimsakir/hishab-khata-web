@@ -179,8 +179,11 @@ export function recordFields(kind: Kind, records: MoneyRecord[]): Field[] {
         amount("monthly", "Monthly contribution"),
         { name: "annual_rate", label: "Annual interest / expected SIP return (%)", type: "number", min: "-99.99", max: "100", step: "0.01", required: true },
         { name: "compounding", label: "Growth calculation", options: growthMethods, required: true },
-        { name: "projection_start", label: "Projection start / FDR deposit date", type: "date", required: true },
-        ...schedule.filter((f) => f.name !== "end"),
+        { name: "projection_start", label: "Return projection start date", type: "date", required: true },
+        ...schedule.filter((f) => f.name !== "end").map(f => ({ ...f, label: f.name === "start" ? "Plan start month" : "Deposit / contribution due day" })),
+        { name: "maturity_mode", label: "Maturity setup", options: [["duration", "Calculate from duration"], ["exact", "Enter exact date"]], required: true },
+        { name: "term_value", label: "Maturity duration", type: "number", min: "1", max: "1200", step: "1", required: true },
+        { name: "term_unit", label: "Duration unit", options: [["months", "Months"], ["years", "Years"]], required: true },
         {
           name: "maturity",
           label: "Maturity / target date",
@@ -206,6 +209,9 @@ export function recordValues(
       if (record?.data[f.name + "_paisa"] !== undefined)
         return [f.name, decimal(Number(record.data[f.name + "_paisa"]))];
       if (f.name === "start") return [f.name, today().slice(0, 7)];
+      if (f.name === "maturity_mode") return [f.name, record ? "exact" : "duration"];
+      if (f.name === "term_value") return [f.name, "3"];
+      if (f.name === "term_unit") return [f.name, "years"];
       if (f.name === "annual_rate") return [f.name, ""];
       if (f.name === "compounding") return [f.name, "monthly"];
       if (f.type === "date") return [f.name, today()];

@@ -965,6 +965,7 @@ function RecordPage(p: Shared & { kind: Kind }) {
                       ["Monthly contribution", money(n(r, "monthly_paisa"))],
                       ["Contribution due day", s(r, "day")],
                       ["Maturity / target date", s(r, "maturity")],
+                      ["Maturity setup", s(r, "maturity_mode") === "duration" ? `${s(r, "term_value")} ${s(r, "term_unit")} from first due date` : "Exact date"],
                     ]}
                   />
                   <SavingsEstimate data={r.data} transactions={data.transactions} planId={r.id} />
