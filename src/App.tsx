@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { FinanceCharts } from "./FinanceCharts";
 import { ConnectedAccounts } from "./ConnectedAccounts";
 import { SavingsEstimate } from "./SavingsEstimate";
 import {
@@ -79,6 +80,8 @@ function Workspace() {
     [data, setData] = useState<Snapshot | null>(null),
     [date, setDate] = useState(today()),
     [period, setPeriod] = useState("Monthly"),
+    [rangeFrom, setRangeFrom] = useState(today().slice(0,7) + "-01"),
+    [rangeTo, setRangeTo] = useState(today()),
     [fetching, setFetching] = useState(false),
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
@@ -90,23 +93,27 @@ function Workspace() {
     } | null>(null),
     [deleting, setDeleting] = useState(false);
   const isProfile = path === "/profile";
+  const fetchSequence = useRef(0);
   async function refresh() {
+    const sequence = ++fetchSequence.current;
+    if (period === "Custom" && (!rangeFrom || !rangeTo || rangeFrom > rangeTo)) { setFetching(false); return; }
     setFetching(true);
     try {
       const snapshot = await api<Snapshot>(
-        `/finance?date=${date}&period=${period}`,
+        `/finance?date=${date}&period=${period}${period === "Custom" ? `&from=${rangeFrom}&to=${rangeTo}` : ""}`,
       );
+      if (sequence !== fetchSequence.current) return;
       setData(snapshot);
       setError("");
     } catch (e) {
-      setError((e as Error).message);
+      if (sequence === fetchSequence.current) setError((e as Error).message);
     } finally {
-      setFetching(false);
+      if (sequence === fetchSequence.current) setFetching(false);
     }
   }
   useEffect(() => {
     if (user && !isProfile) void refresh();
-  }, [user?.id, date, period, isProfile]);
+  }, [user?.id, date, period, rangeFrom, rangeTo, isProfile]);
   useEffect(() => {
     setMenu(false);
     if (isProfile) setError("");
@@ -262,9 +269,10 @@ function Workspace() {
         </div>
         {!isProfile && <div className="toolbar">
           <div className="segments">
-            {["Daily", "Monthly", "Yearly"].map((p) => (
+            {["Daily", "Monthly", "Yearly", "Custom"].map((p) => (
               <button
                 key={p}
+                aria-pressed={p === period}
                 className={p === period ? "active" : ""}
                 onClick={() => setPeriod(p)}
               >
@@ -273,15 +281,18 @@ function Workspace() {
             ))}
           </div>
           <div className="reporttools">
-            <input
+            {period === "Custom" ? <div className="date-range">
+              <label>From<input type="date" value={rangeFrom} max={rangeTo || undefined} onChange={e=>setRangeFrom(e.target.value)} /></label>
+              <label>To<input type="date" value={rangeTo} min={rangeFrom || undefined} onChange={e=>setRangeTo(e.target.value)} /></label>
+            </div> : <input
               type="date"
               aria-label="Reporting date"
               value={date}
               onChange={(e) => e.target.value && setDate(e.target.value)}
-            />
+            />}
             <button
               className="secondary"
-              disabled={!data}
+              disabled={!data || (period === "Custom" && (!rangeFrom || !rangeTo || rangeFrom > rangeTo))}
               onClick={() => data && exportCSV(data)}
             >
               <Download size={14} /> Export
@@ -293,6 +304,7 @@ function Workspace() {
             {error}
           </div>
         )}
+        {period === "Custom" && rangeFrom > rangeTo && <p role="alert" className="error">End date must be on or after start date.</p>}
         {pageContent()}
 
       </main>
@@ -533,6 +545,7 @@ function Overview(p: Shared) {
           </button>
         </section>
       )}
+      <FinanceCharts data={data} />
       <div className="quick-actions" aria-label="Quick transactions">
         {([ ["expense", "Add expense", ArrowUpRight], ["income", "Add income", ArrowDownLeft], ["transfer", "Transfer", ArrowLeftRight], ["saving", "Save money", Sprout] ] as const).map(([type,label,Icon]) => <button key={type} onClick={()=>p.transaction({type})}><span><Icon size={21}/></span>{label}</button>)}
       </div>
@@ -759,8 +772,7 @@ function Transactions({
 }
 function RecordPage(p: Shared & { kind: Kind }) {
   const { data, kind, record, remove, transaction, paid } = p,
-    records = data.records.filter((r) => r.kind === kind),
-    month = p.date.slice(0, 7);
+    records = data.records.filter((r) => r.kind === kind);
   return (
     <>
       <div className="sectiontools">
@@ -791,7 +803,7 @@ function RecordPage(p: Shared & { kind: Kind }) {
               .filter(
                 (t) =>
                   t.source_id === r.id &&
-                  t.cycle === month &&
+                  t.date >= data.from && t.date <= data.to &&
                   t.type === "income",
               )
               .reduce((s, t) => s + t.amount_paisa, 0);
@@ -886,7 +898,7 @@ function RecordPage(p: Shared & { kind: Kind }) {
                 <Details
                   items={[
                     ...(s(r, "frequency") === "once" ? [["Receipt date", s(r,"payment_date")]] as [string,string][] : [["Payment day",s(r,"day")],["First month",s(r,"start")],["Last month",s(r,"end") || "Ongoing"]] as [string,string][]),
-                    ["Received this month", money(received)],
+                    ["Received in selected period", money(received)],
                   ]}
                 />
               )}{" "}
@@ -1088,10 +1100,10 @@ function Planner(p: Shared) {
             rows
               .filter(
                 (d) =>
-                  d.date.startsWith(p.date.slice(0, 7)) && d.type !== "income",
+                  d.date >= p.data.from && d.date <= p.data.to && d.type !== "income",
               )
               .reduce((s, d) => s + d.paid_paisa, 0),
-            "Recorded against this month’s schedule",
+            "Selected period",
           ],
         ]}
       />
@@ -1108,11 +1120,11 @@ function Planner(p: Shared) {
         <section className="card">
           <h2>Money expected</h2>
           <DueList rows={income} paid={p.paid} />
-          <h2 className="sectiongap">Completed this month</h2>
+          <h2 className="sectiongap">Completed in selected period</h2>
           <DueList
             rows={rows.filter(
               (d) =>
-                d.left_paisa === 0 && d.date.startsWith(p.date.slice(0, 7)),
+                d.left_paisa === 0 && d.date >= p.data.from && d.date <= p.data.to,
             )}
             paid={p.paid}
           />
@@ -1257,6 +1269,7 @@ function Reports({ data }: { data: Snapshot }) {
           ],
         ]}
       />
+      <FinanceCharts data={data} />
       <div className="grid">
         <section className="card">
           <h2>Cash flow</h2>
