@@ -207,10 +207,8 @@ export function investmentFields(values: Data): Field[] {
       {name:"day",label:sip ? "Investment day" : goal ? "Saving day" : "Payment day",type:"number",min:"1",max:"31",step:"1",required:true} as Field,
     ] : []),
     {name:"maturity_mode",label:"Maturity method",options:[["duration","Tenure"],["exact","Exact date"]],required:true},
-    ...(values.maturity_mode === "exact" ? [] : [
-      {name:"term_value",label:"Tenure",type:"number",min:"1",max:values.term_unit === "years" ? "100" : "1200",step:"1",required:true} as Field,
-      {name:"term_unit",label:"Tenure unit",options:[["months","Months"],["years","Years"]],required:true} as Field,
-    ]),
+    {name:"term_value",label:"Duration",type:"number",min:"1",max:values.term_unit === "years" ? "100" : "1200",step:"1",required:values.maturity_mode !== "exact"},
+    {name:"term_unit",label:"Duration unit",options:[["months","Months"],["years","Years"]],required:true},
     {name:"maturity",label:goal ? "Target date" : sip ? "Investment end date" : "Maturity date",type:"date",required:true},
     ...(!goal ? [{name:"annual_rate",label:sip ? "Expected annual return (%)" : "Annual interest rate (%)",type:"number",min:sip ? "-99.99" : "0",max:"100",step:"0.01",required:true} as Field] : []),
     ...(!fdr && !goal ? [{name:"calculation_basis",label:"Calculation method",options:[["monthly_installments","Monthly installments"],["actual_days","Actual days"]],required:true} as Field] : []),
@@ -219,6 +217,18 @@ export function investmentFields(values: Data): Field[] {
       ...(!fdr ? [{name:"projection_start",label:"Projection date",type:"date",required:true} as Field] : []),
     ] : []),
   ];
+}
+
+export function recordFieldGroups(kind: Kind, records: MoneyRecord[], values: Data): {title: string; fields: Field[]}[] {
+  const fields=recordFields(kind,records,values);
+  if(kind !== "savings") return [{title:"",fields}];
+  const groups: [string,string[]][] = [
+    ["Investment details",["type","bank","target","opening","monthly"]],
+    [values.type === "Goal" ? "Saving period" : "Duration & maturity",["opening_date","term_value","term_unit","maturity_mode","maturity"]],
+    [values.type === "SIP" ? "Return calculation" : "Interest calculation",["annual_rate","calculation_basis","compounding","payment_timing","projection_start"]],
+    ["Payment schedule",["first_payment","day"]],
+  ];
+  return groups.map(([title,names])=>({title,fields:names.flatMap(name=>fields.filter(f=>f.name===name))})).filter(group=>group.fields.length>0);
 }
 
 export function recordValues(

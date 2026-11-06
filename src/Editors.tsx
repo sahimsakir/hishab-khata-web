@@ -6,6 +6,7 @@ import { changeRecordField, recordDraft } from "./recordDraft";
 import { api } from "./api";
 import {
   recordFields,
+  recordFieldGroups,
   recordValues,
   notes,
   kindSingular,
@@ -118,7 +119,7 @@ export function EditorDialog({
       </div>
       {editor.mode === "record" ? (
         <>
-          <p className="note">{editor.kind === "savings" ? projection.type === "DPS" ? "The monthly estimate uses the contracted installments. Opening balance tracks money saved before your recorded transactions and is not added a second time to the contract projection." : projection.type === "FDR" ? "Deposit amount is the principal used for the maturity estimate. Opening balance is the amount already held before your recorded transactions. Record funding and withdrawals separately." : projection.type === "SIP" ? "Expected returns are estimates and can be negative. Initial investment is money invested before your recorded contributions." : "Set a target and saving schedule. No interest assumptions are required." : notes[editor.kind]}</p>
+          {editor.kind === "savings" ? <p className="note">{projection.type === "Goal" ? "Choose a duration to calculate your target date." : "Enter a duration and annual rate below. Maturity and estimated returns update automatically."}</p> : <p className="note">{notes[editor.kind]}</p>}
           <form
             onSubmit={async (e) => {
               e.preventDefault();
@@ -156,7 +157,11 @@ export function EditorDialog({
                   defaultValue={editor.record?.name}
                 />
               </label>
-              {recordFields(editor.kind, data.records,projection).map((f) => (
+            </div>
+            {recordFieldGroups(editor.kind,data.records,projection).map(group => <section className="record-form-section" key={group.title || "details"} aria-label={group.title || "Record details"}>
+              {group.title && <h3>{group.title}</h3>}
+              <div className="formgrid">
+              {group.fields.map((f) => (
                 <FieldInput
                   key={f.name}
                   f={editor.kind === "savings" && f.name === "term_value" ? { ...f, max: projection.term_unit === "years" ? "100" : "1200" } : f}
@@ -171,10 +176,12 @@ export function EditorDialog({
                   }
                 />
               ))}
-            </div>
+              </div>
+              {group.title === "Duration & maturity" && <p className="sub">Changing Duration or Duration unit calculates the maturity date from the opening date. Choose Exact date to use your agreement’s date.</p>}
+              {["Interest calculation","Return calculation"].includes(group.title) && <SavingsEstimate data={projection} transactions={data.transactions} planId={editor.record?.id} />}
+            </section>)}
             {editor.kind === "savings" && <>
               <p className="sub">{projection.maturity_mode === "duration" ? `Maturity: ${savingsStartDate(projection) ?? "opening date"} + ${projection.term_value} ${projection.term_unit}. Shorter months use their last valid day.` : "Use the maturity date in your agreement."} Payment day does not change the opening date.</p>
-              <SavingsEstimate data={projection} transactions={data.transactions} planId={editor.record?.id} />
             </>}
             {error && (
               <div className="error" role="alert">

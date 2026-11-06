@@ -35,11 +35,17 @@ export function recordDraft(kind: Kind, records: MoneyRecord[], record?: MoneyRe
   v.projection_start ||= String(data.projection_start ?? v.opening_date);
   v.calculation_basis ||= ["DPS","SIP"].includes(v.type) ? "monthly_installments" : "actual_days";
   v.payment_timing ||= "beginning";
+  if (v.maturity_mode === "exact") {
+    const months=investmentMonths(v);
+    v.term_value=months ? String(months % 12 === 0 ? months / 12 : months) : "";
+    v.term_unit=months && months % 12 === 0 ? "years" : "months";
+  }
   return normalizeSavings(v);
 }
 
 export function changeRecordField(kind: Kind, records: MoneyRecord[], previous: Record<string,string>, name: string, value: string) {
   let next={...previous,[name]:value};
+  if(kind === "savings" && ["term_value","term_unit"].includes(name)) next.maturity_mode="duration";
   if(name === "type") {
     const defaults=recordValues(undefined,recordFields(kind,records,{type:value}));
     next={...defaults,...Object.fromEntries(Object.keys(defaults).filter(k=>k in previous).map(k=>[k,previous[k]])),type:value};

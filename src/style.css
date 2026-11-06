@@ -1,4 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
+.record-form-section { margin-top: 20px; padding-top: 18px; border-top: 1px solid #e0e7df; }
+.record-form-section h3 { margin: 0 0 14px; color: #285b47; font-size: 17px; }
+.record-form-section .sub { margin-top: 12px; }
 .savings-estimate { margin: 16px 0; padding: 16px; background: #f3f7ef; border: 1px solid #dfe8d9; border-radius: 14px; }
 .savings-estimate dl { margin: 12px 0; }
 .savings-estimate dl > div { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 9px 0; }
