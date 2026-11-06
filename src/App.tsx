@@ -97,8 +97,8 @@ const headings: Record<string, [string, string]> = {
     "Cash flow, spending, savings, and net worth without counting anything twice.",
   ],
   "/profile": [
-    "Your personal workspace.",
-    "Manage your sign-in and connection to Google.",
+    "Profile",
+    "Your personal details and sign-in accounts.",
   ],
 };
 export function App() {
@@ -129,6 +129,7 @@ function Workspace() {
       id: string;
     } | null>(null),
     [deleting, setDeleting] = useState(false);
+  const isProfile = path === "/profile";
   async function refresh() {
     setFetching(true);
     try {
@@ -144,10 +145,11 @@ function Workspace() {
     }
   }
   useEffect(() => {
-    if (user) void refresh();
-  }, [user?.id, date, period]);
+    if (user && !isProfile) void refresh();
+  }, [user?.id, date, period, isProfile]);
   useEffect(() => {
     setMenu(false);
+    if (isProfile) setError("");
   }, [path]);
   useEffect(() => {
     if (message) {
@@ -180,6 +182,7 @@ function Workspace() {
       );
     };
   const pageContent = () => {
+    if (isProfile) return <ConnectedAccounts user={user} />;
     if (!data)
       return (
         <div className="empty">
@@ -203,8 +206,6 @@ function Workspace() {
       );
     if (path === "/planner") return <Planner {...common} />;
     if (path === "/reports") return <Reports data={data} />;
-    if (path === "/profile")
-      return <ConnectedAccounts user={user} />;
     let kind = path.slice(1) as Kind;
     if (kind === "budgets") return <Budgets {...common} />;
     if (["accounts", "incomes", "loans", "cards", "savings"].includes(kind))
@@ -284,7 +285,7 @@ function Workspace() {
               <b>{nav.find((n) => n.path === path)?.name || "Profile"}</b>
             </span>
           </div>
-          <div className="headright">
+          {!isProfile && <div className="headright">
             <span className="pill">৳ BDT</span>
             <span className="timezone">Asia / Dhaka</span>
             <button
@@ -294,18 +295,18 @@ function Workspace() {
             >
               <RefreshCw size={16} className={fetching ? "spin" : ""} />
             </button>
-          </div>
+          </div>}
         </header>
         <div className="heading">
           <div>
             <h1>{title[0]}</h1>
             <p>{title[1]}</p>
           </div>
-          <button className="primary" onClick={() => transaction()}>
+          {!isProfile && <button className="primary" onClick={() => transaction()}>
             <Plus size={16} /> Add transaction
-          </button>
+          </button>}
         </div>
-        <div className="toolbar">
+        {!isProfile && <div className="toolbar">
           <div className="segments">
             {["Daily", "Monthly", "Yearly"].map((p) => (
               <button
@@ -332,19 +333,19 @@ function Workspace() {
               <Download size={14} /> Export
             </button>
           </div>
-        </div>
+        </div>}
         {error && (
           <div className="error banner" role="alert">
             {error}
           </div>
         )}
         {pageContent()}
-        <div className="bottom-note">
+        {!isProfile && <div className="bottom-note">
           <span>◈ Precise to the paisa. Even ৳0.10 counts.</span>
           <span>
             <ShieldCheck size={12} /> Private account · Saved to your database
           </span>
-        </div>
+        </div>}
       </main>
       {message && (
         <div className="toast" role="status">
