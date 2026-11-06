@@ -312,6 +312,9 @@ function TransactionForm({
       options: options("cards"),
       required: true,
     });
+  const [savingId, setSavingId] = useState(t?.saving_id || defaults.saving_id || options("savings")[0]?.[0] || "");
+  const selectedSaving = data.records.find(r=>r.id===savingId && r.kind==="savings");
+  const scheduledSaving = type === "saving" && Number(selectedSaving?.data.monthly_paisa || 0) > 0;
   const values: Record<string, string> = {
     name: t?.name || defaults.name || editor.due?.name || "",
     amount: t
@@ -358,6 +361,16 @@ function TransactionForm({
               body.cycle = t.cycle || undefined;
               body.statement_date = t.statement_date || undefined;
             }
+            if (type === "saving") {
+              if (scheduledSaving) {
+                body.source_id = v.saving_id;
+                body.cycle = v.installment_month;
+              } else {
+                delete body.source_id;
+                delete body.cycle;
+              }
+            }
+            delete (body as unknown as Record<string,unknown>).installment_month;
             await api(
               "/transactions" + (t ? "/" + t.id : ""),
               t ? "PUT" : "POST",
@@ -391,10 +404,15 @@ function TransactionForm({
             <FieldInput
               key={f.name}
               f={f}
+              value={f.name === "saving_id" ? savingId : undefined}
+              onChange={f.name === "saving_id" ? setSavingId : undefined}
               defaultValue={values[f.name] || f.options?.[0]?.[0] || ""}
             />
           ))}
         </div>
+        {scheduledSaving && <label key={savingId}>Installment month
+          <input name="installment_month" type="month" required defaultValue={editor.due?.cycle || t?.cycle || (t?.date || today()).slice(0,7)} min={String(selectedSaving?.data.start || "")} max={String(selectedSaving?.data.maturity || "").slice(0,7)} />
+        </label>}
         {error && (
           <div className="error" role="alert">
             {error}

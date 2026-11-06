@@ -36,3 +36,9 @@ describe("investment editor controls",()=>{
     expect(render("Goal")).not.toContain('name="annual_rate"');
   });
 });
+
+describe("savings contribution allocation",()=>{
+  const transactionEditor=(type:string)=>renderToStaticMarkup(createElement(EditorDialog,{editor:{mode:"transaction",defaults:{type:"saving",saving_id:"fixture"}},data:{...snapshot,records:[record(type)]},close:()=>{},saved:async()=>{}}));
+  it("shows an installment month for recurring savings",()=>{expect(transactionEditor("DPS")).toContain('name="installment_month"');expect(transactionEditor("SIP")).toContain('name="installment_month"');});
+  it("does not ask for an installment month for a one-time FDR",()=>{expect(transactionEditor("FDR")).not.toContain('name="installment_month"');});
+});
