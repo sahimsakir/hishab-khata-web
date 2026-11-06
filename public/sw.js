@@ -1,6 +1,6 @@
 /* Only public installation assets are cached. API/auth requests always use the network. */
-const CACHE = "hishabkhata-install-v2";
-const PUBLIC_FILES = ["/offline.html", "/manifest.webmanifest", "/icons/icon-192-v2.png", "/icons/icon-512-v2.png", "/icons/maskable-512-v2.png", "/icons/apple-touch-icon-v2.png"];
+const CACHE = "hishabkhata-install-v3";
+const PUBLIC_FILES = ["/icons/icon-192.png", "/icons/icon-512.png", "/icons/maskable-512.png", "/icons/apple-touch-icon.png", "/offline.html", "/manifest.webmanifest", "/icons/icon-192-v2.png", "/icons/icon-512-v2.png", "/icons/maskable-512-v2.png", "/icons/apple-touch-icon-v2.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PUBLIC_FILES)).then(() => self.skipWaiting()));
