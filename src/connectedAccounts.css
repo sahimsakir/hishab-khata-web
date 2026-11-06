@@ -1,0 +1,20 @@
+.profile-settings { max-width: 800px; display: grid; gap: 20px; }
+.profile-identity { display: flex; gap: 16px; align-items: center; }
+.profile-identity h2 { margin: 0 0 5px; }
+.profile-avatar { flex: 0 0 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: #e8f1e9; color: #285b47; font-size: 23px; font-weight: 700; }
+.profile-email { overflow-wrap: anywhere; color: #586b60; }
+.provider-row { display: flex; align-items: center; gap: 14px; padding: 22px 0; margin-top: 16px; border-top: 1px solid #e5eae3; }
+.provider-icon { flex: 0 0 46px; height: 46px; display: grid; place-items: center; border: 1px solid #e5eae3; border-radius: 12px; font-size: 27px; color: #4285f4; font-weight: 700; background: white; }
+.provider-details { flex: 1; min-width: 0; }
+.provider-details h3 { margin: 0 0 4px; }
+.connection-badge { display: inline-flex; gap: 5px; align-items: center; white-space: nowrap; border-radius: 20px; padding: 7px 11px; font-size: 12px; font-weight: 600; }
+.is-connected { color: #226045; background: #e7f3e8; }
+.is-disconnected { color: #68726a; background: #eff1ed; }
+.provider-action { display: grid; gap: 15px; border-top: 1px solid #e5eae3; padding-top: 17px; }
+.google-connect-button { display: inline-flex; align-items: center; justify-content: center; gap: 12px; padding: 13px 20px; border: 1px solid #cfd8d0; border-radius: 10px; background: white; color: #243b34; font-weight: 600; justify-self: start; }
+.google-connect-button:disabled { opacity: .55; cursor: not-allowed; }
+.google-connect-button:focus-visible { outline: 3px solid #285b47; outline-offset: 3px; }
+.google-button-mark { color: #4285f4; font-size: 20px; font-weight: 700; }
+.connection-confirmation { display: flex; align-items: center; gap: 8px; color: #285b47; }
+.connection-success { background: #e7f3e8; color: #226045; border-radius: 9px; padding: 12px; margin-top: 16px; }
+@media(max-width: 540px) { .provider-row { flex-wrap: wrap; }.connection-badge { margin-left: 60px; }.google-connect-button { width: 100%; }.profile-identity { align-items: flex-start; } }

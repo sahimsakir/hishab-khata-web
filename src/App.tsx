@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { ConnectedAccounts } from "./ConnectedAccounts";
 import { SavingsEstimate } from "./SavingsEstimate";
 import {
   Routes,
@@ -29,7 +30,7 @@ import {
   ArrowUpRight,
   ShieldCheck,
 } from "lucide-react";
-import { api, googleLink } from "./api";
+import { api } from "./api";
 import { AuthProvider, AuthPage, Callback, useAuth } from "./Auth";
 import type {
   Kind,
@@ -203,20 +204,7 @@ function Workspace() {
     if (path === "/planner") return <Planner {...common} />;
     if (path === "/reports") return <Reports data={data} />;
     if (path === "/profile")
-      return (
-        <section className="card">
-          <h2>{user.name}</h2>
-          <p className="sub">{user.email}</p>
-          <div className="notice">
-            Google accounts can be connected only after you sign in, and must
-            use the same email address. Your financial records are private to
-            your user account.
-          </div>
-          <button className="secondary" onClick={googleLink}>
-            Connect Google account
-          </button>
-        </section>
-      );
+      return <ConnectedAccounts user={user} />;
     let kind = path.slice(1) as Kind;
     if (kind === "budgets") return <Budgets {...common} />;
     if (["accounts", "incomes", "loans", "cards", "savings"].includes(kind))

@@ -194,8 +194,10 @@ export function AuthPage({ register = false }: { register?: boolean }) {
 export function Callback() {
   const { refresh } = useAuth();
   const nav = useNavigate();
+  const [params] = useSearchParams();
+  const linked = params.get("linked") === "1";
   useEffect(() => {
-    void refresh().then(() => nav("/", { replace: true }));
-  }, []);
+    void refresh().then(() => nav(linked ? "/profile?google=connected" : "/", { replace: true }));
+  }, [linked]);
   return <div className="loading">Completing Google sign-in…</div>;
 }

@@ -48,6 +48,9 @@ export interface Due {
   left_paisa: number;
 }
 export interface User {
+  google_connected?: boolean;
+  google_email?: string | null;
+  google_login_available?: boolean;
   id: number;
   name: string;
   email: string;
