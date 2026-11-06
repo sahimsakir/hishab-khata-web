@@ -6,7 +6,7 @@ const listeners = {};
 let cached = [];
 const offline = { status: 200, body: 'offline' };
 const cache = { addAll: async urls => {cached = urls;}, match: async () => offline };
-const sandbox = { URL, self: { location: {origin:'https://example.com'}, clients: {claim:async()=>{}}, addEventListener:(name,fn)=>listeners[name]=fn }, caches: {open:async()=>cache,keys:async()=>[],delete:async()=>true}, fetch:async()=>{throw new Error('offline');} };
+const sandbox = { URL, self: { skipWaiting:async()=>{}, location: {origin:'https://example.com'}, clients: {claim:async()=>{}}, addEventListener:(name,fn)=>listeners[name]=fn }, caches: {open:async()=>cache,keys:async()=>[],delete:async()=>true}, fetch:async()=>{throw new Error('offline');} };
 vm.runInNewContext(fs.readFileSync(root+'public/sw.js','utf8'), sandbox);
 (async()=>{
  let task; listeners.install({waitUntil:p=>task=p}); await task;
