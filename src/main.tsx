@@ -5,6 +5,7 @@ import { App } from "./App";
 import { PwaInstall } from "./PwaInstall";
 import "./style.css";
 import "./pwa.css";
+import "./ui.css";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>

@@ -28,7 +28,7 @@ import {
   RefreshCw,
   X,
   ArrowUpRight,
-  ShieldCheck,
+  UserRound,
 } from "lucide-react";
 import { api } from "./api";
 import { AuthProvider, AuthPage, Callback, useAuth } from "./Auth";
@@ -55,52 +55,12 @@ const nav = [
   { path: "/budgets", name: "Budgets", icon: Target },
   { path: "/reports", name: "Reports", icon: ChartNoAxesCombined },
 ];
-const headings: Record<string, [string, string]> = {
-  "/": [
-    "Everything in its right place.",
-    "A clear picture of your income, everyday spending, and everything ahead.",
-  ],
-  "/transactions": [
-    "Every paisa, accounted for.",
-    "One connected ledger, from your smallest purchase to your biggest payment.",
-  ],
-  "/incomes": [
-    "Make a plan for money coming in.",
-    "Salary, business profit, freelance work, and every other source of income.",
-  ],
-  "/loans": [
-    "Take control of what you owe.",
-    "Personal, bank, car, home, and other loans. Each EMI has a place.",
-  ],
-  "/cards": [
-    "Keep your card dues in check.",
-    "Purchases, statement balances, minimum dues, and repayments — clearly separated.",
-  ],
-  "/planner": [
-    "Your month, organized.",
-    "See what is paid, what is pending, and what needs your attention.",
-  ],
-  "/savings": [
-    "Grow your tomorrow.",
-    "DPS, FDR, SIP, and personal goals. Small steps toward something bigger.",
-  ],
-  "/accounts": [
-    "Know where your money lives.",
-    "Cash, banks, and mobile wallets, connected with simple transfers.",
-  ],
-  "/budgets": [
-    "Give every taka a purpose.",
-    "Keep monthly spending in view with limits for the things that matter.",
-  ],
-  "/reports": [
-    "See the bigger picture.",
-    "Cash flow, spending, savings, and net worth without counting anything twice.",
-  ],
-  "/profile": [
-    "Profile",
-    "Your personal details and sign-in accounts.",
-  ],
-};
+const headings: Record<string, [string, string]> = Object.fromEntries([
+  ["/", "Overview"], ["/transactions", "Transactions"], ["/incomes", "Income sources"],
+  ["/loans", "Loans & EMI"], ["/cards", "Credit cards"], ["/planner", "Payment planner"],
+  ["/savings", "Savings & investments"], ["/accounts", "Accounts"], ["/budgets", "Budgets"],
+  ["/reports", "Reports"], ["/profile", "Profile"],
+].map(([path, title]) => [path, [title, ""]]));
 export function App() {
   return (
     <AuthProvider>
@@ -229,12 +189,6 @@ function Workspace() {
           ))}
         </nav>
         <footer>
-          <div className="mini">
-            A little today.
-            <br />
-            <b>A lot for tomorrow.</b>
-            <p>Make room for what matters.</p>
-          </div>
           <NavLink className="profile" to="/profile">
             <div className="avatar">
               {user.name
@@ -300,7 +254,7 @@ function Workspace() {
         <div className="heading">
           <div>
             <h1>{title[0]}</h1>
-            <p>{title[1]}</p>
+            
           </div>
           {!isProfile && <button className="primary" onClick={() => transaction()}>
             <Plus size={16} /> Add transaction
@@ -340,13 +294,11 @@ function Workspace() {
           </div>
         )}
         {pageContent()}
-        {!isProfile && <div className="bottom-note">
-          <span>◈ Precise to the paisa. Even ৳0.10 counts.</span>
-          <span>
-            <ShieldCheck size={12} /> Private account · Saved to your database
-          </span>
-        </div>}
+
       </main>
+      <nav className="mobile-tabs" aria-label="Main navigation">
+        {([{path:"/",name:"Home",icon:LayoutDashboard},{path:"/transactions",name:"Activity",icon:ArrowLeftRight},{path:"/planner",name:"Planner",icon:CalendarDays},{path:"/savings",name:"Savings",icon:Sprout},{path:"/profile",name:"Profile",icon:UserRound}]).map(({path,name,icon:Icon})=><NavLink key={path} to={path} end={path==="/"}><Icon size={20}/><span>{name}</span></NavLink>)}
+      </nav>
       {message && (
         <div className="toast" role="status">
           {message}
@@ -552,17 +504,17 @@ function Overview(p: Shared) {
           [
             "Income received",
             a.income_paisa,
-            "Actual receipts in selected period",
+            "Selected period",
           ],
           [
-            "Spending + loan interest",
+            "Total expenses",
             a.spending_paisa,
-            "Card purchases counted once",
+            "Including loan interest",
           ],
           [
-            "Pending commitments",
+            "Payments due",
             pending.reduce((s, d) => s + d.left_paisa, 0),
-            "Selected month and earlier unpaid items",
+            "Including overdue payments",
           ],
         ]}
       />
@@ -581,10 +533,13 @@ function Overview(p: Shared) {
           </button>
         </section>
       )}
+      <div className="quick-actions" aria-label="Quick transactions">
+        {([ ["expense", "Add expense", ArrowUpRight], ["income", "Add income", ArrowDownLeft], ["transfer", "Transfer", ArrowLeftRight], ["saving", "Save money", Sprout] ] as const).map(([type,label,Icon]) => <button key={type} onClick={()=>p.transaction({type})}><span><Icon size={21}/></span>{label}</button>)}
+      </div>
       <div className="grid">
         <section className="card">
           <div className="cardtitle">
-            <h2>Your monthly commitments</h2>
+            <h2>Payments due</h2>
             <NavLink to="/planner">Open planner →</NavLink>
           </div>
           <p className="sub">
@@ -593,7 +548,7 @@ function Overview(p: Shared) {
           <DueList rows={pending.slice(0, 5)} paid={paid} />
         </section>
         <section className="card">
-          <h2>A clearer cash flow</h2>
+          <h2>Cash flow</h2>
           <p className="sub">
             {dateText(data.from)} – {dateText(data.to)}
           </p>
@@ -601,10 +556,7 @@ function Overview(p: Shared) {
           <Row name="Total debt repayments" value={-a.debt_payments_paisa} />
           <Row name="Net savings contributions" value={-a.net_savings_paisa} />
           <Row name="Net cash movement" value={a.cash_movement_paisa} total />
-          <p className="inline-note">
-            Card purchases are expenses. Repayments settle the debt and are not
-            counted as another purchase.
-          </p>
+
         </section>
       </div>
       <div className="grid">
@@ -616,7 +568,7 @@ function Overview(p: Shared) {
           <TxTable data={data} tx={periodTx(data).slice(0, 5)} />
         </section>
         <section className="card">
-          <h2>Your money map</h2>
+          <h2>Balances</h2>
           <Row name="Savings & investments" value={a.savings_paisa} />
           <Row name="Loan principal outstanding" value={a.loans_paisa} />
           <Row name="Credit card outstanding" value={a.cards_paisa} />
@@ -812,13 +764,7 @@ function RecordPage(p: Shared & { kind: Kind }) {
   return (
     <>
       <div className="sectiontools">
-        <p>
-          {kind === "accounts"
-            ? "Current balances across your accounts."
-            : kind === "incomes"
-              ? "Expected income becomes actual when you record a receipt."
-              : "Current balances and recorded payments."}
-        </p>
+<h2>{kindLabels[kind]} <span className="record-count">{records.length}</span></h2>
         <div className="actionrow">
           {kind === "accounts" && (
             <button
@@ -1373,10 +1319,7 @@ function Reports({ data }: { data: Snapshot }) {
               .reduce((s, t) => s + t.amount_paisa, 0)}
           />
           <Row name="Total repayments" value={a.debt_payments_paisa} total />
-          <p className="inline-note">
-            Principal reduces your loan balance. Interest is a cost. Card
-            repayments settle purchases already recorded as spending.
-          </p>
+
         </section>
       </div>
     </>

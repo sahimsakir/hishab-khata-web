@@ -2,14 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { SavingsEstimate } from "./SavingsEstimate";
 import { InstallmentHistory } from "./InstallmentHistory";
-import { savingsStartDate } from "./maturity";
 import { changeRecordField, recordDraft } from "./recordDraft";
 import { api } from "./api";
 import {
   recordFields,
   recordFieldGroups,
   recordValues,
-  notes,
   kindSingular,
   categories,
   type Field,
@@ -120,7 +118,7 @@ export function EditorDialog({
       </div>
       {editor.mode === "record" ? (
         <>
-          {editor.kind === "savings" ? <p className="note">{projection.type === "Goal" ? "Choose a duration to calculate your target date." : "Enter a duration and annual rate below. Maturity and estimated returns update automatically."}</p> : <p className="note">{notes[editor.kind]}</p>}
+
           <form
             onSubmit={async (e) => {
               e.preventDefault();
@@ -178,13 +176,11 @@ export function EditorDialog({
                 />
               ))}
               </div>
-              {group.title === "Duration & maturity" && <p className="sub">Changing Duration or Duration unit calculates the maturity date from the opening date. Choose Exact date to use your agreement’s date.</p>}
+
               {["Interest calculation","Return calculation"].includes(group.title) && <SavingsEstimate data={projection} transactions={data.transactions} planId={editor.record?.id} />}
               {group.title === "Payment history" && <InstallmentHistory kind={editor.kind} values={projection} transactions={data.transactions} recordId={editor.record?.id} useCount={count=>setProjection(previous=>changeRecordField(editor.kind,data.records,previous,"previously_paid_installments",String(count)))} />}
             </section>)}
-            {editor.kind === "savings" && <>
-              <p className="sub">{projection.maturity_mode === "duration" ? `Maturity: ${savingsStartDate(projection) ?? "opening date"} + ${projection.term_value} ${projection.term_unit}. Shorter months use their last valid day.` : "Use the maturity date in your agreement."} Payment day does not change the opening date.</p>
-            </>}
+
             {error && (
               <div className="error" role="alert">
                 {error}
@@ -333,13 +329,7 @@ function TransactionForm({
   };
   return (
     <>
-      <p className="note">
-        {editor.due
-          ? `Linked to ${editor.due.cycle}. Partial payments are supported.`
-          : type === "loan_payment"
-            ? "Enter the actual principal amount from your lender. Payment minus principal is recorded as interest."
-            : "This records money movement in your ledger. It does not execute a bank transfer."}
-      </p>
+
       <form
         onSubmit={async (e) => {
           e.preventDefault();
