@@ -48,10 +48,10 @@ export function PwaInstall() {
 
   return <>
     {offline && <div className="pwa-offline" role="status">You’re offline. Reconnect before saving changes.</div>}
-    {!installed && !dismissed && (prompt || ios) && <aside className="pwa-install" aria-label="Install HishabKhata">
+    {!installed && !dismissed && (prompt || ios) && <div role="region" className="pwa-install" aria-label="Install HishabKhata">
       <button type="button" onClick={() => void install()}>Install HishabKhata</button>
       <button type="button" className="pwa-dismiss" aria-label="Dismiss install suggestion" onClick={() => setDismissed(true)}>×</button>
-    </aside>}
+    </div>}
     {help && <div className="pwa-help" role="region" aria-label="Installation instructions">
       <strong>Add HishabKhata to your Home Screen</strong>
       <p>{ios ? "Open this site in Safari. Tap Share, then Add to Home Screen. Enable Open as Web App if shown, then tap Add." : "Open your browser menu and select Install app or Add to Home Screen."}</p>
