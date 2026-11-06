@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { SavingsEstimate } from "./SavingsEstimate";
+import { InstallmentHistory } from "./InstallmentHistory";
 import { savingsStartDate } from "./maturity";
 import { changeRecordField, recordDraft } from "./recordDraft";
 import { api } from "./api";
@@ -179,6 +180,7 @@ export function EditorDialog({
               </div>
               {group.title === "Duration & maturity" && <p className="sub">Changing Duration or Duration unit calculates the maturity date from the opening date. Choose Exact date to use your agreement’s date.</p>}
               {["Interest calculation","Return calculation"].includes(group.title) && <SavingsEstimate data={projection} transactions={data.transactions} planId={editor.record?.id} />}
+              {group.title === "Payment history" && <InstallmentHistory kind={editor.kind} values={projection} transactions={data.transactions} recordId={editor.record?.id} useCount={count=>setProjection(previous=>changeRecordField(editor.kind,data.records,previous,"previously_paid_installments",String(count)))} />}
             </section>)}
             {editor.kind === "savings" && <>
               <p className="sub">{projection.maturity_mode === "duration" ? `Maturity: ${savingsStartDate(projection) ?? "opening date"} + ${projection.term_value} ${projection.term_unit}. Shorter months use their last valid day.` : "Use the maturity date in your agreement."} Payment day does not change the opening date.</p>

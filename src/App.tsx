@@ -497,6 +497,7 @@ function Empty({ children }: { children: ReactNode }) {
   return <div className="empty">{children}</div>;
 }
 function dueStatus(d: Due) {
+  if(d.previously_paid) return "Previously paid";
   return d.left_paisa === 0
     ? "Paid"
     : d.paid_paisa > 0
@@ -510,7 +511,7 @@ function Badge({ children }: { children: ReactNode }) {
     <span
       className={
         "badge " +
-        (children === "Overdue" ? "red" : children === "Paid" ? "green" : "")
+        (children === "Overdue" ? "red" : ["Paid","Previously paid"].includes(String(children)) ? "green" : "")
       }
     >
       {children}
@@ -964,6 +965,7 @@ function RecordPage(p: Shared & { kind: Kind }) {
                       ["Opening date", s(r,"opening_date") || s(r,"start")],
                       [s(r,"type") === "Goal" ? "Target date" : "Maturity date", s(r, "maturity")],
                       ["Tenure", s(r, "maturity_mode") === "duration" ? `${s(r, "term_value")} ${s(r, "term_unit")}` : "Exact date"],
+                      ...(["DPS","SIP"].includes(s(r,"type")) ? [["Previously paid installments",String(n(r,"previously_paid_installments"))]] as [string,string][] : []),
                     ]}
                   />
                   <SavingsEstimate data={r.data} transactions={data.transactions} planId={r.id} />

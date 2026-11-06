@@ -36,6 +36,7 @@ export interface Transaction {
   idempotency_key: string;
 }
 export interface Due {
+  previously_paid?: boolean;
   record_id: string;
   kind: Kind;
   type: TxType;

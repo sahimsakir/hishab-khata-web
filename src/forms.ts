@@ -1,6 +1,7 @@
 import type { Data, Kind, MoneyRecord } from "./types";
 import { decimal, today } from "./money";
 import { growthMethods } from "./savings";
+import { eligibleInstallments } from "./installmentHistory";
 export const categories = [
   "Food & groceries",
   "Rent & bills",
@@ -45,6 +46,7 @@ const select = (name: string, label: string, a: string[]): Field => ({
   ...text(name, label),
   options: opts(a),
 });
+const historyField = (kind: Kind, values: Data): Field => ({name:"previously_paid_installments",label:"Previously paid installments",type:"number",min:"0",max:String(eligibleInstallments(kind,values).length),step:"1"});
 const schedule: Field[] = [
   {
     name: "day",
@@ -160,6 +162,7 @@ export function recordFields(kind: Kind, records: MoneyRecord[], values: Data = 
           max: "600",
           required: true,
         },
+        historyField("loans",values),
       ],
       cards: [
         text("bank", "Bank"),
@@ -216,17 +219,23 @@ export function investmentFields(values: Data): Field[] {
       {name:"compounding",label:"Interest method",options:growthMethods,required:true} as Field,
       ...(!fdr ? [{name:"projection_start",label:"Projection date",type:"date",required:true} as Field] : []),
     ] : []),
+    ...(["DPS","SIP"].includes(type) ? [historyField("savings",values)] : []),
   ];
 }
 
 export function recordFieldGroups(kind: Kind, records: MoneyRecord[], values: Data): {title: string; fields: Field[]}[] {
   const fields=recordFields(kind,records,values);
+  if(kind === "loans") {
+    const groups:[string,string[]][]=[["Loan details",["type","lender","opening","interest_bearing","rate"]],["Repayment schedule",["emi","start","day","term"]],["Payment history",["previously_paid_installments"]]];
+    return groups.map(([title,names])=>({title,fields:names.flatMap(name=>fields.filter(f=>f.name===name))})).filter(g=>g.fields.length>0);
+  }
   if(kind !== "savings") return [{title:"",fields}];
   const groups: [string,string[]][] = [
     ["Investment details",["type","bank","target","opening","monthly"]],
     [values.type === "Goal" ? "Saving period" : "Duration & maturity",["opening_date","term_value","term_unit","maturity_mode","maturity"]],
     [values.type === "SIP" ? "Return calculation" : "Interest calculation",["annual_rate","calculation_basis","compounding","payment_timing","projection_start"]],
     ["Payment schedule",["first_payment","day"]],
+    ["Payment history",["previously_paid_installments"]],
   ];
   return groups.map(([title,names])=>({title,fields:names.flatMap(name=>fields.filter(f=>f.name===name))})).filter(group=>group.fields.length>0);
 }
