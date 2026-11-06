@@ -1,5 +1,6 @@
 import type { Kind, MoneyRecord } from "./types";
 import { decimal, today } from "./money";
+import { growthMethods } from "./savings";
 export const categories = [
   "Food & groceries",
   "Rent & bills",
@@ -176,6 +177,9 @@ export function recordFields(kind: Kind, records: MoneyRecord[]): Field[] {
         amount("target", "Target / principal"),
         amount("opening", "Opening saved balance"),
         amount("monthly", "Monthly contribution"),
+        { name: "annual_rate", label: "Annual interest / expected SIP return (%)", type: "number", min: "-99.99", max: "100", step: "0.01", required: true },
+        { name: "compounding", label: "Growth calculation", options: growthMethods, required: true },
+        { name: "projection_start", label: "Projection start / FDR deposit date", type: "date", required: true },
         ...schedule.filter((f) => f.name !== "end"),
         {
           name: "maturity",
@@ -202,6 +206,8 @@ export function recordValues(
       if (record?.data[f.name + "_paisa"] !== undefined)
         return [f.name, decimal(Number(record.data[f.name + "_paisa"]))];
       if (f.name === "start") return [f.name, today().slice(0, 7)];
+      if (f.name === "annual_rate") return [f.name, ""];
+      if (f.name === "compounding") return [f.name, "monthly"];
       if (f.type === "date") return [f.name, today()];
       if (f.name === "day") return [f.name, "1"];
       if (f.name === "term") return [f.name, "12"];
@@ -220,7 +226,7 @@ export const notes: Record<Kind, string> = {
   cards:
     "No card numbers or security codes are needed. Opening debt is what you already owed. A statement is a payment target, not an additional expense. Update it each cycle from your bank.",
   savings:
-    "Opening balance is money already saved. Use zero monthly contribution for a one-time FDR. Record actual contributions, withdrawals, and returns as they occur.",
+    "Opening balance is money saved before your tracked transactions. DPS/SIP projections include that balance plus recorded contributions/withdrawals before the projection start; later deposits follow the schedule. If today’s deposit is already recorded, start the projection tomorrow. For FDR, target/principal is the single planned investment: set monthly contribution to zero. Enter your bank’s annual nominal rate or an assumed SIP rate; rates are not looked up automatically. Record actual movements separately.",
   bills:
     "Monthly bills appear in your planner until paid. Due days 29–31 use the last day in shorter months.",
   budgets:

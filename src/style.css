@@ -1,4 +1,10 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
+.savings-estimate { margin: 16px 0; padding: 16px; background: #f3f7ef; border: 1px solid #dfe8d9; border-radius: 14px; }
+.savings-estimate dl { margin: 12px 0; }
+.savings-estimate dl > div { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 9px 0; }
+.savings-estimate dt { color: #52645a; font-size: 13px; }
+.savings-estimate dd { margin: 0; text-align: right; font-weight: 700; overflow-wrap: anywhere; }
+.savings-estimate .sub { line-height: 1.6; font-size: 12px; }
 :root {
   --green: #24634d;
   --ink: #243b34;

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { SavingsEstimate } from "./SavingsEstimate";
 import { api } from "./api";
 import {
   recordFields,
@@ -75,6 +76,9 @@ export function EditorDialog({
   const dialog = useRef<HTMLDialogElement>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
+  const [projection, setProjection] = useState<Record<string, string>>(() =>
+    editor.mode === "record" && editor.kind === "savings"
+      ? recordValues(editor.record, recordFields("savings", data.records)) : {});
   useEffect(() => {
     dialog.current?.showModal();
     const onCancel = (e: Event) => {
@@ -110,6 +114,9 @@ export function EditorDialog({
         <>
           <p className="note">{notes[editor.kind]}</p>
           <form
+            onChange={(e) => {
+              if (editor.kind === "savings") setProjection(Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>);
+            }}
             onSubmit={async (e) => {
               e.preventDefault();
               setError("");
@@ -157,6 +164,7 @@ export function EditorDialog({
                 />
               ))}
             </div>
+            {editor.kind === "savings" && <SavingsEstimate data={projection} transactions={data.transactions} planId={editor.record?.id} />}
             {error && (
               <div className="error" role="alert">
                 {error}

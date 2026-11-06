@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { SavingsEstimate } from "./SavingsEstimate";
 import {
   Routes,
   Route,
@@ -966,6 +967,7 @@ function RecordPage(p: Shared & { kind: Kind }) {
                       ["Maturity / target date", s(r, "maturity")],
                     ]}
                   />
+                  <SavingsEstimate data={r.data} transactions={data.transactions} planId={r.id} />
                 </>
               )}
               {kind === "accounts" && (
