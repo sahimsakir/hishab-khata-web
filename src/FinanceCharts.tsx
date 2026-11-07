@@ -1,3 +1,4 @@
+import { dateText } from "./DateInput";
 import type { Snapshot } from "./types";
 import { money } from "./money";
 import { chartColors, chartData } from "./chartData";
@@ -11,7 +12,7 @@ export function FinanceCharts({data}:{data:Snapshot}) {
   return <div className="finance-charts">
     <section className="card trend-card" aria-label="Income and expenses chart">
       <div className="cardtitle"><h2>Income & expenses</h2><div className="chart-legend"><span><i style={{background:chartColors[0]}}/>Income</span><span><i style={{background:chartColors[2]}}/>Expenses</span></div></div>
-      <p className="sub">{data.from} – {data.to} · {monthly ? `${monthStep}-month` : `${step}-day`} groups</p>
+      <p className="sub">{dateText(data.from)} – {dateText(data.to)} · {monthly ? `${monthStep}-month` : `${step}-day`} groups</p>
       {buckets.every(b=>!b.income&&!b.expense) ? <div className="chart-empty">No income or expenses in this period</div> : <>
         <div className="trend-plot" role="img" aria-label="Income and expenses by period. Exact values available in chart data below.">
           <div className="chart-scale"><span>৳{compact(maximum)}</span><span>৳{compact(maximum/2)}</span><span>৳0</span></div>

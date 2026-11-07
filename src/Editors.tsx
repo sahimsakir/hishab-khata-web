@@ -1,3 +1,4 @@
+import { DateInput } from "./DateInput";
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { SavingsEstimate } from "./SavingsEstimate";
@@ -51,6 +52,8 @@ function FieldInput({ f, defaultValue, value, onChange, readOnly }: { f: Field; 
             </option>
           ))}
         </select>
+      ) : f.type === "date" ? (
+        <DateInput name={f.name} label={f.label} value={value} defaultValue={defaultValue} onChange={onChange} required={f.required} readOnly={readOnly} />
       ) : (
         <input
           name={f.name}
@@ -241,7 +244,7 @@ function TransactionForm({
       .filter((r) => r.kind === kind)
       .map((r) => [r.id, r.name] as [string, string]);
   const fields: Field[] = [
-    { name: "name", label: "Description", required: true },
+    { name: "name", label: "Description (optional)" },
     {
       name: "amount",
       label: ({income:"Income amount",expense:"Expense amount",loan_payment:"Repayment amount",card_payment:"Payment amount",saving:"Contribution amount",savings_withdrawal:"Withdrawal amount",transfer:"Transfer amount",loan_received:"Disbursement amount"}[type]) + " (৳)",

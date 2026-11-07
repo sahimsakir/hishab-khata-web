@@ -1,3 +1,4 @@
+import { dateText } from "./DateInput";
 import { money } from "./money";
 import type { Data, Transaction } from "./types";
 import { projectSavings } from "./savings";
@@ -18,7 +19,7 @@ export function SavingsEstimate({ data, transactions, planId }: { data: Data; tr
       <div><dt>Scheduled deposits included</dt><dd>{estimate.contributions}</dd></div>
     </dl>
     <details className="calculation-details"><summary>Calculation details</summary>
-      <p className="sub">{String(data.opening_date || data.projection_start)} – {String(data.maturity)} · Before taxes and fees.</p>
+      <p className="sub">{dateText(String(data.opening_date || data.projection_start))} – {dateText(String(data.maturity))} · Before taxes and fees.</p>
       <p className="sub">{sip ? "Expected returns are not guaranteed. Investments can lose value." : "Estimated return. Bank payout terms may differ."}</p>
     </details>
   </section>;

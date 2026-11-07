@@ -1,3 +1,4 @@
+import { DateInput, dateText } from "./DateInput";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FinanceCharts } from "./FinanceCharts";
 import { ConnectedAccounts } from "./ConnectedAccounts";
@@ -282,14 +283,9 @@ function Workspace() {
           </div>
           <div className="reporttools">
             {period === "Custom" ? <div className="date-range">
-              <label>From<input type="date" value={rangeFrom} max={rangeTo || undefined} onChange={e=>setRangeFrom(e.target.value)} /></label>
-              <label>To<input type="date" value={rangeTo} min={rangeFrom || undefined} onChange={e=>setRangeTo(e.target.value)} /></label>
-            </div> : <input
-              type="date"
-              aria-label="Reporting date"
-              value={date}
-              onChange={(e) => e.target.value && setDate(e.target.value)}
-            />}
+              <label>From<DateInput label="From date" value={rangeFrom} onChange={setRangeFrom} /></label>
+              <label>To<DateInput label="To date" value={rangeTo} onChange={setRangeTo} /></label>
+            </div> : <DateInput label="Reporting date" value={date} required onChange={value => value && setDate(value)} />}
             <button
               className="secondary"
               disabled={!data || (period === "Custom" && (!rangeFrom || !rangeTo || rangeFrom > rangeTo))}
@@ -407,13 +403,7 @@ interface Shared {
   date: string;
 }
 const n = (r: MoneyRecord, k: string) => Number(r.data[k] || 0),
-  s = (r: MoneyRecord, k: string) => String(r.data[k] || ""),
-  dateText = (d: string) =>
-    new Date(d + "T12:00:00").toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+  s = (r: MoneyRecord, k: string) => String(r.data[k] || "");
 function Stats({ items }: { items: [string, number, string][] }) {
   return (
     <div className="stats">
@@ -649,7 +639,7 @@ function TxTable({
                     )}
                   </span>
                   <div>
-                    <b>{t.name}</b>
+                    <b>{t.name || txLabels[t.type]}</b>
                     <small>
                       {dateText(t.date)}
                       {t.cycle ? " · " + t.cycle : ""}
@@ -888,8 +878,8 @@ function RecordPage(p: Shared & { kind: Kind }) {
                         ),
                       ],
                       ["Minimum payment", money(n(r, "minimum_paisa"))],
-                      ["Statement date", s(r, "statement_date")],
-                      ["Payment due", s(r, "due_date")],
+                      ["Statement date", dateText(s(r, "statement_date"))],
+                      ["Payment due", dateText(s(r, "due_date"))],
                     ]}
                   />
                 </>
@@ -897,7 +887,7 @@ function RecordPage(p: Shared & { kind: Kind }) {
               {kind === "incomes" && (
                 <Details
                   items={[
-                    ...(s(r, "frequency") === "once" ? [["Receipt date", s(r,"payment_date")]] as [string,string][] : [["Payment day",s(r,"day")],["First month",s(r,"start")],["Last month",s(r,"end") || "Ongoing"]] as [string,string][]),
+                    ...(s(r, "frequency") === "once" ? [["Receipt date", dateText(s(r,"payment_date"))]] as [string,string][] : [["Payment day",s(r,"day")],["First month",s(r,"start")],["Last month",s(r,"end") || "Ongoing"]] as [string,string][]),
                     ["Received in selected period", money(received)],
                   ]}
                 />
@@ -909,8 +899,8 @@ function RecordPage(p: Shared & { kind: Kind }) {
                     items={[
                       [s(r,"type") === "FDR" ? "Deposit amount" : s(r,"type") === "Goal" ? "Target amount" : "Planned contributions", money(n(r, "target_paisa"))],
                       ...(s(r,"type") === "FDR" ? [] : [[s(r,"type") === "SIP" ? "Monthly investment" : s(r,"type") === "DPS" ? "Monthly installment" : "Monthly saving",money(n(r,"monthly_paisa"))],["Payment day",s(r,"day")]] as [string,string][]),
-                      ["Opening date", s(r,"opening_date") || s(r,"start")],
-                      [s(r,"type") === "Goal" ? "Target date" : "Maturity date", s(r, "maturity")],
+                      ["Opening date", dateText(s(r,"opening_date")) || s(r,"start")],
+                      [s(r,"type") === "Goal" ? "Target date" : "Maturity date", dateText(s(r, "maturity"))],
                       ["Tenure", s(r, "maturity_mode") === "duration" ? `${s(r, "term_value")} ${s(r, "term_unit")}` : "Exact date"],
                       ...(["DPS","SIP"].includes(s(r,"type")) ? [["Previously paid installments",String(n(r,"previously_paid_installments"))]] as [string,string][] : []),
                     ]}
@@ -1345,7 +1335,7 @@ function exportCSV(data: Snapshot) {
       return '"' + s.replaceAll('"', '""') + '"';
     },
     rows = periodTx(data).map((t) => [
-      t.date,
+      dateText(t.date),
       t.name,
       t.type,
       t.category,
