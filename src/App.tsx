@@ -1,3 +1,4 @@
+import { AccountTools } from "./AccountTools";
 import { LoanCalculator } from "./LoanCalculator";
 import { DateInput, dateText } from "./DateInput";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -163,7 +164,7 @@ function Workspace() {
           </button>
         </div>
       );
-    const common = { data, record, transaction, remove, paid, date };
+    const common = { data, record, transaction, remove, paid, date, refresh };
     if (path === "/") return <Overview {...common} />;
     if (path === "/transactions")
       return (
@@ -672,6 +673,7 @@ function TxTable({
                   ? "+"
                   : "−"}
                 {money(t.amount_paisa)}
+                {t.type === "transfer" && t.interest_paisa > 0 && <small>Fee {money(t.interest_paisa)}</small>}
               </td>
               {edit && (
                 <td>
@@ -761,7 +763,7 @@ function Transactions({
     </section>
   );
 }
-function RecordPage(p: Shared & { kind: Kind }) {
+function RecordPage(p: Shared & { kind: Kind; refresh: () => Promise<void> }) {
   const { data, kind, record, remove, transaction, paid } = p,
     records = data.records.filter((r) => r.kind === kind);
   return (
@@ -812,6 +814,7 @@ function RecordPage(p: Shared & { kind: Kind }) {
                 <Badge>
                   {kind === "loans" && bal === 0
                     ? "Paid"
+                    : kind === "accounts" && r.data.archived === "yes" ? "Archived"
                     : due
                       ? dueStatus(due)
                       : kind === "cards"
@@ -833,6 +836,7 @@ function RecordPage(p: Shared & { kind: Kind }) {
                         ? "Expected each month"
                         : "Recorded savings balance"}
               </p>
+
               {kind === "loans" && (
                 <>
                   <Progress
@@ -905,7 +909,6 @@ function RecordPage(p: Shared & { kind: Kind }) {
                       ["Opening date", dateText(s(r,"opening_date")) || s(r,"start")],
                       [s(r,"type") === "Goal" ? "Target date" : "Maturity date", dateText(s(r, "maturity"))],
                       ["Tenure", s(r, "maturity_mode") === "duration" ? `${s(r, "term_value")} ${s(r, "term_unit")}` : "Exact date"],
-                      ...(["DPS","SIP"].includes(s(r,"type")) ? [["Previously paid installments",String(n(r,"previously_paid_installments"))]] as [string,string][] : []),
                     ]}
                   />
                   <SavingsEstimate data={r.data} transactions={data.transactions} planId={r.id} balance={bal} />
@@ -915,6 +918,9 @@ function RecordPage(p: Shared & { kind: Kind }) {
                 <p className="sub">
                   Opening balance {money(n(r, "opening_paisa"))}
                 </p>
+              )}
+              {kind === "accounts" && (
+                <AccountTools account={r} data={data} refresh={p.refresh} />
               )}
               <div className="actionrow">
                 {due && kind !== "cards" && (
@@ -1020,14 +1026,6 @@ function RecordPage(p: Shared & { kind: Kind }) {
           </Empty>
         </section>
       )}
-      {kind === "savings" && (
-        <p className="notice">
-          Savings balances show actual recorded principal and contributions. For
-          a return paid to your account, record income; if reinvested, also
-          record an equal contribution. Market returns and maturity payouts are
-          not estimated.
-        </p>
-      )}
       {kind === "cards" && (
         <p className="notice">
           Update your statement from your bank each cycle. A statement does not
@@ -1117,7 +1115,7 @@ function Planner(p: Shared) {
           <DueList
             rows={rows.filter(
               (d) =>
-                d.left_paisa === 0 && d.date >= p.data.from && d.date <= p.data.to,
+                !d.previously_paid && d.left_paisa === 0 && d.date >= p.data.from && d.date <= p.data.to,
             )}
             paid={p.paid}
           />
@@ -1271,6 +1269,7 @@ function Reports({ data }: { data: Snapshot }) {
           </p>
           <Row name="Income received" value={a.income_paisa} />
           <Row name="Cash / bank purchases" value={-cashExpenses} />
+          <Row name="Transfer fees" value={-(a.transfer_fees_paisa ?? 0)} />
           <Row name="Loan & card repayments" value={-a.debt_payments_paisa} />
           <Row name="Net savings contributions" value={-a.net_savings_paisa} />
           <Row
@@ -1296,6 +1295,7 @@ function Reports({ data }: { data: Snapshot }) {
               <Row key={x.c} name={x.c} value={x.v} />
             ))}
           <Row name="Loan interest paid" value={a.interest_paisa} />
+          <Row name="Transfer fees" value={a.transfer_fees_paisa ?? 0} />
           <Row name="Total spending" value={a.spending_paisa} total />
         </section>
       </div>
@@ -1345,12 +1345,13 @@ function exportCSV(data: Snapshot) {
       data.records.find((r) => r.id === t.account_id)?.name,
       decimal(t.amount_paisa),
       decimal(t.principal_paisa),
-      decimal(t.interest_paisa),
+      decimal(t.type === "loan_payment" ? t.interest_paisa : 0),
+      decimal(t.type === "transfer" ? t.interest_paisa : 0),
     ]);
   const url = URL.createObjectURL(
     new Blob(
       [
-        "Date,Description,Type,Category,Account,Amount BDT,Principal BDT,Interest BDT\n" +
+        "Date,Description,Type,Category,Account,Amount BDT,Principal BDT,Interest BDT,Transfer fee BDT\n" +
           rows.map((r) => r.map(safe).join(",")).join("\n"),
       ],
       { type: "text/csv;charset=utf-8" },

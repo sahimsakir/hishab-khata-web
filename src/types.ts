@@ -9,7 +9,8 @@ export type TxType =
   | "card_payment"
   | "transfer"
   | "loan_received";
-export type Data = Record<string, string | number | null>;
+export type Reconciliation = { date: string; balance: string; cleared: string[] };
+export type Data = Record<string, string | number | null | Reconciliation>;
 export interface MoneyRecord {
   id: string;
   kind: Kind;
@@ -71,6 +72,7 @@ export interface TxInput {
   date: string;
   amount: string;
   principal?: string;
+  transfer_fee?: string;
   category?: string;
   account_id: string;
   destination_id?: string;

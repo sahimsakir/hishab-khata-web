@@ -184,7 +184,7 @@ export function EditorDialog({
               ))}
               </div>
 
-              {["Interest calculation","Return calculation"].includes(group.title) && <SavingsEstimate data={projection} transactions={data.transactions} planId={editor.record?.id} balance={editor.record ? data.balances[editor.record.id] : undefined} />}
+              {["Interest calculation","Return calculation"].includes(group.title) && <SavingsEstimate data={projection} transactions={data.transactions} planId={editor.record?.id} />}
               {editor.kind === "loans" && group.title === "Repayment schedule" && (
                 <LoanEstimate principal={projection.opening} rate={projection.type === "Family / friend" && projection.interest_bearing !== "yes" ? "0" : projection.rate ?? ""}
                   months={Number(projection.term)} fee={projection.processing_fee ?? ""} />
@@ -249,7 +249,7 @@ function TransactionForm({
     [key] = useState(t?.idempotency_key ?? crypto.randomUUID());
   const options = (kind: Kind) =>
     data.records
-      .filter((r) => r.kind === kind)
+      .filter((r) => r.kind === kind && (r.data.archived !== "yes" || r.id === t?.account_id || r.id === t?.destination_id))
       .map((r) => [r.id, r.name] as [string, string]);
   const fields: Field[] = [
     { name: "name", label: "Description (optional)" },
@@ -286,7 +286,7 @@ function TransactionForm({
       required: true,
     });
   if (type === "transfer")
-    fields.push({
+    fields.push({name:"transfer_fee", label:"Transfer fee (৳)", type:"number", min:"0", step:"0.01"}, {
       name: "destination_id",
       label: "Destination account",
       options: options("accounts"),
@@ -336,6 +336,7 @@ function TransactionForm({
       t?.account_id || defaults.account_id || options("accounts")[0]?.[0] || "",
     category: t?.category || "Other",
     destination_id: t?.destination_id || "",
+    transfer_fee: t?.type === "transfer" ? decimal(t.interest_paisa) : "",
     loan_id: t?.loan_id || defaults.loan_id || "",
     saving_id: t?.saving_id || defaults.saving_id || "",
     card_id: t?.card_id || defaults.card_id || "",

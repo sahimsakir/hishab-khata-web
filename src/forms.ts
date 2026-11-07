@@ -87,7 +87,7 @@ export function recordFields(kind: Kind, records: MoneyRecord[], values: Data = 
   const account: Field = {
     ...text("account_id", "Money account"),
     options: records
-      .filter((r) => r.kind === "accounts")
+      .filter((r) => r.kind === "accounts" && (r.data.archived !== "yes" || r.id === values.account_id))
       .map((r) => [r.id, r.name]),
   };
   const type = String(values.type ?? "");

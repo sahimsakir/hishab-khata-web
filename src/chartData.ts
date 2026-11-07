@@ -19,8 +19,8 @@ export function chartData(transactions: readonly Transaction[], from: string, to
     if(t.date<from || t.date>to) continue;
     const bucket=buckets.get(keyFor(t.date))!;
     if(t.type==="income") bucket.income+=t.amount_paisa;
-    const cost=t.type==="expense" ? t.amount_paisa : t.type==="loan_payment" ? t.interest_paisa : 0;
-    if(cost>0){bucket.expense+=cost;const name=t.type==="loan_payment" ? "Loan interest" : t.category || "Other";categories.set(name,(categories.get(name)||0)+cost);}
+    const cost=t.type==="expense" ? t.amount_paisa : ["loan_payment","transfer"].includes(t.type) ? t.interest_paisa : 0;
+    if(cost>0){bucket.expense+=cost;const name=t.type==="transfer" ? "Transfer fees" : t.type==="loan_payment" ? "Loan interest" : t.category || "Other";categories.set(name,(categories.get(name)||0)+cost);}
   }
   const sorted=[...categories].map(([name,value])=>({name,value})).sort((a,b)=>b.value-a.value);
   const slices=sorted.length>6 ? [...sorted.slice(0,5),{name:"Other categories",value:sorted.slice(5).reduce((s,c)=>s+c.value,0)}] : sorted;
