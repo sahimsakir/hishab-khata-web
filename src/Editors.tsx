@@ -184,7 +184,7 @@ export function EditorDialog({
               ))}
               </div>
 
-              {["Interest calculation","Return calculation"].includes(group.title) && <SavingsEstimate data={projection} transactions={data.transactions} planId={editor.record?.id} />}
+              {["Interest calculation","Return calculation"].includes(group.title) && <SavingsEstimate data={projection} transactions={data.transactions} planId={editor.record?.id} balance={editor.record ? data.balances[editor.record.id] : undefined} />}
               {editor.kind === "loans" && group.title === "Repayment schedule" && (
                 <LoanEstimate principal={projection.opening} rate={projection.type === "Family / friend" && projection.interest_bearing !== "yes" ? "0" : projection.rate ?? ""}
                   months={Number(projection.term)} fee={projection.processing_fee ?? ""} />

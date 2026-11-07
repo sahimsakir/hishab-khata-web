@@ -3,7 +3,7 @@ import { DateInput, dateText } from "./DateInput";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FinanceCharts } from "./FinanceCharts";
 import { ConnectedAccounts } from "./ConnectedAccounts";
-import { SavingsBalance, SavingsEstimate } from "./SavingsEstimate";
+import { SavingsEstimate } from "./SavingsEstimate";
 import {
   Routes,
   Route,
@@ -819,9 +819,6 @@ function RecordPage(p: Shared & { kind: Kind }) {
                         : s(r, "type") || "BDT"}
                 </Badge>
               </div>
-              {kind === "savings" && ["DPS", "FDR"].includes(s(r, "type"))
-                ? <SavingsBalance data={r.data} balance={bal} />
-                : <>
               <div className="bigamount">
                 {money(kind === "incomes" ? n(r, "amount_paisa") : bal)}
               </div>
@@ -836,8 +833,6 @@ function RecordPage(p: Shared & { kind: Kind }) {
                         ? "Expected each month"
                         : "Recorded savings balance"}
               </p>
-                </>}
-
               {kind === "loans" && (
                 <>
                   <Progress
@@ -913,7 +908,7 @@ function RecordPage(p: Shared & { kind: Kind }) {
                       ...(["DPS","SIP"].includes(s(r,"type")) ? [["Previously paid installments",String(n(r,"previously_paid_installments"))]] as [string,string][] : []),
                     ]}
                   />
-                  <SavingsEstimate data={r.data} transactions={data.transactions} planId={r.id} />
+                  <SavingsEstimate data={r.data} transactions={data.transactions} planId={r.id} balance={bal} />
                 </>
               )}
               {kind === "accounts" && (
