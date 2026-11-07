@@ -1,3 +1,4 @@
+import { LoanCalculator } from "./LoanCalculator";
 import { DateInput, dateText } from "./DateInput";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FinanceCharts } from "./FinanceCharts";
@@ -783,6 +784,7 @@ function RecordPage(p: Shared & { kind: Kind }) {
           </button>
         </div>
       </div>
+      {kind === "loans" && <LoanCalculator />}
       <div className="listgrid">
         {records.map((r) => {
           const bal = data.balances[r.id] || 0,
@@ -840,6 +842,7 @@ function RecordPage(p: Shared & { kind: Kind }) {
                   <Details
                     items={[
                       ["Monthly EMI", money(n(r, "emi_paisa"))],
+                      ["Processing fee", money(n(r, "processing_fee_paisa"))],
                       ["Annual interest rate", s(r, "rate") + "%"],
                       ["Due day", s(r, "day") + " each month"],
                       [
@@ -905,7 +908,7 @@ function RecordPage(p: Shared & { kind: Kind }) {
                       ...(["DPS","SIP"].includes(s(r,"type")) ? [["Previously paid installments",String(n(r,"previously_paid_installments"))]] as [string,string][] : []),
                     ]}
                   />
-                  <SavingsEstimate data={r.data} transactions={data.transactions} planId={r.id} />
+                  <SavingsEstimate data={r.data} transactions={data.transactions} planId={r.id} balance={bal} />
                 </>
               )}
               {kind === "accounts" && (

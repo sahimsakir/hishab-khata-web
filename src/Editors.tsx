@@ -1,3 +1,4 @@
+import { LoanEstimate } from "./LoanCalculator";
 import { DateInput } from "./DateInput";
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
@@ -133,6 +134,9 @@ export function EditorDialog({
                 ) as Record<string, string>;
                 const values = editor.kind === "savings" ? {...projection,name:formValues.name} : formValues;
                 if(editor.kind === "loans" && projection.type === "Family / friend" && projection.interest_bearing !== "yes") values.rate="0";
+                for (const key of ["emi", "processing_fee", "bank_accrued_interest"]) {
+                  if (values[key] === "") delete values[key];
+                }
                 const name = values.name;
                 delete values.name;
                 await api(
@@ -180,7 +184,11 @@ export function EditorDialog({
               ))}
               </div>
 
-              {["Interest calculation","Return calculation"].includes(group.title) && <SavingsEstimate data={projection} transactions={data.transactions} planId={editor.record?.id} />}
+              {["Interest calculation","Return calculation"].includes(group.title) && <SavingsEstimate data={projection} transactions={data.transactions} planId={editor.record?.id} balance={editor.record ? data.balances[editor.record.id] : undefined} />}
+              {editor.kind === "loans" && group.title === "Repayment schedule" && (
+                <LoanEstimate principal={projection.opening} rate={projection.type === "Family / friend" && projection.interest_bearing !== "yes" ? "0" : projection.rate ?? ""}
+                  months={Number(projection.term)} fee={projection.processing_fee ?? ""} />
+              )}
               {group.title === "Payment history" && <InstallmentHistory kind={editor.kind} values={projection} transactions={data.transactions} recordId={editor.record?.id} useCount={count=>setProjection(previous=>changeRecordField(editor.kind,data.records,previous,"previously_paid_installments",String(count)))} />}
             </section>)}
 

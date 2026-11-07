@@ -142,7 +142,8 @@ export function recordFields(kind: Kind, records: MoneyRecord[], values: Data = 
         ]),
         text("lender", type === "Family / friend" ? "Lender" : "Bank"),
         amount("opening", "Opening principal outstanding"),
-        amount("emi", "Monthly EMI"),
+        {...amount("emi", "Monthly EMI override (blank to calculate)"), required:false},
+        {...amount("processing_fee", "Processing fee"), required:false},
         ...(type === "Family / friend" ? [{name:"interest_bearing",label:"Interest",options:[["no","Interest-free"],["yes","Interest-bearing"]],required:true} as Field] : []),
         ...((type !== "Family / friend" || (values.interest_bearing === "yes" || (!values.interest_bearing && Number(values.rate) > 0))) ? [{
           name: "rate",
@@ -156,7 +157,7 @@ export function recordFields(kind: Kind, records: MoneyRecord[], values: Data = 
         ...schedule.filter((f) => f.name !== "end"),
         {
           name: "term",
-          label: "Number of scheduled EMIs",
+          label: "Loan tenure (months)",
           type: "number",
           min: "1",
           max: "600",
@@ -203,6 +204,7 @@ export function investmentFields(values: Data): Field[] {
     ...(!goal ? [text("bank", sip ? "Fund manager" : "Bank")] : []),
     ...(fdr ? [amount("target","Deposit amount")] : goal ? [amount("target","Target amount")] : []),
     amount("opening", sip ? "Initial investment" : "Opening balance"),
+    ...(["DPS","FDR"].includes(type) ? [{...amount("bank_accrued_interest","Bank-reported accrued interest"),required:false}] : []),
     ...(!fdr ? [amount("monthly", sip ? "Monthly investment" : goal ? "Monthly saving" : "Monthly installment")] : []),
     {name:"opening_date",label:sip ? "Investment start date" : goal ? "Start date" : "Opening date",type:"date",required:true},
     ...(!fdr ? [
@@ -226,12 +228,12 @@ export function investmentFields(values: Data): Field[] {
 export function recordFieldGroups(kind: Kind, records: MoneyRecord[], values: Data): {title: string; fields: Field[]}[] {
   const fields=recordFields(kind,records,values);
   if(kind === "loans") {
-    const groups:[string,string[]][]=[["Loan details",["type","lender","opening","interest_bearing","rate"]],["Repayment schedule",["emi","start","day","term"]],["Payment history",["previously_paid_installments"]]];
+    const groups:[string,string[]][]=[["Loan details",["type","lender","opening","interest_bearing","rate","processing_fee"]],["Repayment schedule",["emi","start","day","term"]],["Payment history",["previously_paid_installments"]]];
     return groups.map(([title,names])=>({title,fields:names.flatMap(name=>fields.filter(f=>f.name===name))})).filter(g=>g.fields.length>0);
   }
   if(kind !== "savings") return [{title:"",fields}];
   const groups: [string,string[]][] = [
-    ["Investment details",["type","bank","target","opening","monthly"]],
+    ["Investment details",["type","bank","target","opening","monthly","bank_accrued_interest"]],
     [values.type === "Goal" ? "Saving period" : "Duration & maturity",["opening_date","term_value","term_unit","maturity_mode","maturity"]],
     [values.type === "SIP" ? "Return calculation" : "Interest calculation",["annual_rate","calculation_basis","compounding","payment_timing","projection_start"]],
     ["Payment schedule",["first_payment","day"]],
@@ -246,7 +248,8 @@ export function recordValues(
 ): Record<string, string> {
   return Object.fromEntries(
     fields.map((f) => {
-      let v = record?.data[f.name];
+      const v = record?.data[f.name];
+      if (f.name === "emi" && record?.data.emi_auto === "yes") return [f.name, ""];
       if (f.name in (record?.data ?? {})) return [f.name, String(v ?? "")];
       if (record?.data[f.name + "_paisa"] !== undefined)
         return [f.name, decimal(Number(record.data[f.name + "_paisa"]))];
@@ -265,6 +268,7 @@ export function recordValues(
       if (f.type === "date") return [f.name, today()];
       if (f.name === "day") return [f.name, "1"];
       if (f.name === "term") return [f.name, "12"];
+      if (f.type === "number" && !f.required) return [f.name, ""];
       if (f.type === "number") return [f.name, "0"];
       return [f.name, f.options?.[0]?.[0] ?? ""];
     }),
