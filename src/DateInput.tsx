@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CalendarDays } from "lucide-react";
 
 export function dateText(value: string) {
   return value.replace(/^(\d{4})-(\d{2})-(\d{2})$/, "$3-$2-$1");
@@ -48,4 +49,35 @@ export function DateInput({ name, label, value, defaultValue, onChange, required
     />
     {name && <input type="hidden" name={name} value={iso} />}
   </>;
+}
+
+type DatePickerProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+};
+
+export function DatePicker({ label, value, onChange, required }: DatePickerProps) {
+  return (
+    <span className="date-picker">
+      <span className="date-picker-display" aria-hidden="true">
+        {dateText(value) || "DD-MM-YYYY"}
+        <CalendarDays size={16} />
+      </span>
+      <input
+        type="date"
+        aria-label={label}
+        value={value}
+        required={required}
+        onChange={(event) => onChange(event.currentTarget.value)}
+        onClick={(event) => {
+          const input = event.currentTarget;
+          if (typeof input.showPicker === "function") {
+            input.showPicker();
+          }
+        }}
+      />
+    </span>
+  );
 }
