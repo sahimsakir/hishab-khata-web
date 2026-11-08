@@ -1,6 +1,6 @@
 import { AccountTools } from "./AccountTools";
 import { LoanCalculator } from "./LoanCalculator";
-import { DateInput, dateText } from "./DateInput";
+import { DatePicker, dateText } from "./DateInput";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FinanceCharts } from "./FinanceCharts";
 import { ConnectedAccounts } from "./ConnectedAccounts";
@@ -285,9 +285,9 @@ function Workspace() {
           </div>
           <div className="reporttools">
             {period === "Custom" ? <div className="date-range">
-              <label>From<DateInput label="From date" value={rangeFrom} onChange={setRangeFrom} /></label>
-              <label>To<DateInput label="To date" value={rangeTo} onChange={setRangeTo} /></label>
-            </div> : <DateInput label="Reporting date" value={date} required onChange={value => value && setDate(value)} />}
+              <label>From<DatePicker label="From date" value={rangeFrom} onChange={setRangeFrom} /></label>
+              <label>To<DatePicker label="To date" value={rangeTo} onChange={setRangeTo} /></label>
+            </div> : <DatePicker label="Reporting date" value={date} required onChange={value => value && setDate(value)} />}
             <button
               className="secondary"
               disabled={!data || (period === "Custom" && (!rangeFrom || !rangeTo || rangeFrom > rangeTo))}
