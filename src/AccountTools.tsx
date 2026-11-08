@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "./api";
-import { DateInput, dateText } from "./DateInput";
+import { DatePicker, dateText } from "./DateInput";
 import { money, parseMoney, decimal, today } from "./money";
 import { accountMovement, importKey, parseStatement } from "./accountLedger";
 import type { MoneyRecord, Reconciliation, Snapshot } from "./types";
@@ -108,7 +108,7 @@ export function AccountTools({ account, data, refresh }: { account: MoneyRecord;
           return "Reconciliation saved.";
         });
       }}>
-        <label>Statement date<DateInput label="Statement date" value={date} onChange={setDate} required /></label>
+        <label>Statement date<DatePicker label="Statement date" value={date} onChange={setDate} required /></label>
         <label>Statement closing balance (৳)<input type="number" step="0.01" required value={closing} onChange={e => setClosing(e.target.value)} /></label>
         <p>Cleared balance {money(clearedBalance)} · Difference {closingPaisa === undefined ? "—" : money(closingPaisa - clearedBalance)}</p>
         <div className="table-wrap"><table><thead><tr><th>Cleared</th><th>Date</th><th>Transaction</th><th>Change</th></tr></thead>
