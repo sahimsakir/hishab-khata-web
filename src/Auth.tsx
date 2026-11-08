@@ -8,6 +8,16 @@ import {
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { api, googleLogin } from "./api";
 import type { User } from "./types";
+export function WorkspaceLoader() {
+  return (
+    <div className="loading workspace-loader" role="status" aria-label="Loading Hishab Khata">
+      <div className="workspace-loader-mark" aria-hidden="true">
+        <img src="/icons/icon-192-v2.png" alt="" width={72} height={72} />
+      </div>
+    </div>
+  );
+}
+
 const AuthContext = createContext<{
   user: User | null;
   loading: boolean;
@@ -50,7 +60,7 @@ export function AuthPage({ register = false }: { register?: boolean }) {
         : "",
     ),
     [busy, setBusy] = useState(false);
-  if (loading) return <div className="loading">Opening your workspace…</div>;
+  if (loading) return <WorkspaceLoader />;
   if (user) return <Navigate to="/" replace />;
   return (
     <div className="authlayout">
