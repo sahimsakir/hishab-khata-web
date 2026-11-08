@@ -3,11 +3,10 @@ import { isLoading, subscribeLoading } from "./loading";
 
 export function WorkspaceLoader() {
   return <div className="workspace-loader" role="status" aria-label="Loading HishabKhata">
-    <div className="workspace-loader-mark" aria-hidden="true">
-      <img src="/icons/icon-192-v2.png" alt="" width={72} height={72} />
-    </div>
-    <strong aria-hidden="true">HishabKhata</strong>
-    <div className="workspace-loader-progress" aria-hidden="true" />
+    <picture>
+      <source media="(prefers-reduced-motion: reduce)" srcSet="/icons/icon-192-v2.png" />
+      <img src="/icons/payment-loader.gif" alt="" width={150} height={150} />
+    </picture>
   </div>;
 }
 
