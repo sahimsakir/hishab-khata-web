@@ -251,6 +251,14 @@ function TransactionForm({
     data.records
       .filter((r) => r.kind === kind && (r.data.archived !== "yes" || r.id === t?.account_id || r.id === t?.destination_id))
       .map((r) => [r.id, r.name] as [string, string]);
+  const accountOptions = options("accounts");
+  const initialAccount = t?.account_id || defaults.account_id || accountOptions[0]?.[0] || "";
+  const [sourceId, setSourceId] = useState(initialAccount);
+  const [destinationId, setDestinationId] = useState(t?.destination_id || defaults.destination_id || "");
+  const transferSource = accountOptions.some(([id]) => id === sourceId)
+    ? sourceId
+    : accountOptions[0]?.[0] || "";
+  const destinationOptions = accountOptions.filter(([id]) => id !== transferSource);
   const fields: Field[] = [
     { name: "name", label: "Description (optional)" },
     {
@@ -272,7 +280,7 @@ function TransactionForm({
           ? "Receiving account"
           : type === "transfer" ? "Source account" : "Payment account",
       options: [
-        ...options("accounts"),
+        ...accountOptions,
         ...(type === "expense" ? options("cards") : []),
       ],
       required: true,
@@ -289,7 +297,10 @@ function TransactionForm({
     fields.push({name:"transfer_fee", label:"Transfer fee (৳)", type:"number", min:"0", step:"0.01"}, {
       name: "destination_id",
       label: "Destination account",
-      options: options("accounts"),
+      options: [
+        ["", destinationOptions.length ? "Select destination account" : "No other account available"],
+        ...destinationOptions,
+      ],
       required: true,
     });
   if (["saving", "savings_withdrawal"].includes(type))
@@ -332,10 +343,8 @@ function TransactionForm({
       ? decimal(t.amount_paisa)
       : defaults.amount || (editor.due && decimal(editor.due.left_paisa)) || "",
     date: t?.date || today(),
-    account_id:
-      t?.account_id || defaults.account_id || options("accounts")[0]?.[0] || "",
+    account_id: initialAccount,
     category: t?.category || "Other",
-    destination_id: t?.destination_id || "",
     transfer_fee: t?.type === "transfer" ? decimal(t.interest_paisa) : "",
     loan_id: t?.loan_id || defaults.loan_id || "",
     saving_id: t?.saving_id || defaults.saving_id || "",
@@ -412,7 +421,18 @@ function TransactionForm({
           </select>
         </label>
         <div className="formgrid" key={type}>
-          {fields.map((f) => (
+          {fields.map((f) => {
+            if (type === "transfer" && f.name === "account_id") {
+              return <FieldInput key={f.name} f={f} value={transferSource} onChange={(id) => {
+                setSourceId(id);
+                if (id === destinationId) setDestinationId("");
+              }} />;
+            }
+            if (type === "transfer" && f.name === "destination_id") {
+              const value = destinationOptions.some(([id]) => id === destinationId) ? destinationId : "";
+              return <FieldInput key={f.name} f={f} value={value} onChange={setDestinationId} />;
+            }
+            return (
             <FieldInput
               key={f.name}
               f={f}
@@ -420,7 +440,8 @@ function TransactionForm({
               onChange={f.name === "saving_id" ? setSavingId : undefined}
               defaultValue={values[f.name] || f.options?.[0]?.[0] || ""}
             />
-          ))}
+            );
+          })}
         </div>
         {scheduledSaving && <label key={savingId}>Installment month
           <input name="installment_month" type="month" required defaultValue={editor.due?.cycle || t?.cycle || (t?.date || today()).slice(0,7)} min={String(selectedSaving?.data.start || "")} max={String(selectedSaving?.data.maturity || "").slice(0,7)} />
