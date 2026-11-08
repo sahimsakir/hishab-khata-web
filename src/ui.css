@@ -111,4 +111,26 @@ dialog.workspace-loading-overlay {
 }
 
 main .workspace-loader { min-height: 45dvh; border-radius: 20px; }
-.workspace-loader img { display: block; object-fit: contain; }
+.payment-loader { display: block; }
+.payment-loader-card { animation: payment-tap 1.6s ease-in-out infinite; }
+.payment-loader-pulse {
+  transform-origin: 80px 80px;
+  animation: payment-pulse 1.6s ease-out infinite;
+}
+.payment-loader-signal { animation: payment-signal 1.6s ease-in-out infinite; }
+@keyframes payment-tap {
+  0%, 100% { transform: translateY(5px); }
+  45%, 60% { transform: translateY(-5px); }
+}
+@keyframes payment-pulse {
+  0%, 25% { opacity: 0; transform: scale(.88); }
+  45% { opacity: .8; }
+  100% { opacity: 0; transform: scale(1.13); }
+}
+@keyframes payment-signal {
+  0%, 20%, 100% { opacity: .15; }
+  45%, 65% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .payment-loader-card, .payment-loader-pulse, .payment-loader-signal { animation: none; }
+}
