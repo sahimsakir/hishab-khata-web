@@ -35,7 +35,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { api } from "./api";
-import { AuthProvider, AuthPage, Callback, useAuth } from "./Auth";
+import { AuthProvider, AuthPage, Callback, WorkspaceLoader, useAuth } from "./Auth";
 import type {
   Kind,
   MoneyRecord,
@@ -127,7 +127,7 @@ function Workspace() {
       return () => clearTimeout(t);
     }
   }, [message]);
-  if (loading) return <div className="loading">Opening your workspace…</div>;
+  if (loading) return <WorkspaceLoader />;
   if (!user) return <Navigate to="/login" replace />;
   const title = headings[path] || headings["/"],
     record = (kind: Kind, r?: MoneyRecord) =>
