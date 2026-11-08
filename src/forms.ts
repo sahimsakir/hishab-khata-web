@@ -2,6 +2,15 @@ import type { Data, Kind, MoneyRecord } from "./types";
 import { decimal, today } from "./money";
 import { growthMethods } from "./savings";
 import { eligibleInstallments } from "./installmentHistory";
+export const bonusTypes = [
+  "Festival / Eid bonus",
+  "Performance bonus",
+  "Annual bonus",
+  "Signing bonus",
+  "Referral bonus",
+  "Retention bonus",
+  "Other bonus",
+];
 export const categories = [
   "Food & groceries",
   "Rent & bills",
@@ -132,6 +141,7 @@ export function recordFields(kind: Kind, records: MoneyRecord[], values: Data = 
           "Freelance",
           "Rental income",
           "Dividend / interest",
+          ...bonusTypes,
           "Other",
         ]),
         ...(incomeExtra[type] ? [{name:"payer",label:incomeExtra[type],required:false}] : []),

@@ -1,3 +1,4 @@
+import { bonusTypes } from "./forms";
 import { WorkspaceLoader } from "./WorkspaceLoader";
 import { AccountTools } from "./AccountTools";
 import { LoanCalculator } from "./LoanCalculator";
@@ -142,6 +143,7 @@ function Workspace() {
       transaction(
         {
           type: due.type,
+          category: due.kind === "incomes" && bonusTypes.includes(String(r?.data.type)) ? String(r?.data.type) : undefined,
           name: due.name,
           amount: decimal(due.left_paisa),
           account_id: String(r?.data.account_id || ""),

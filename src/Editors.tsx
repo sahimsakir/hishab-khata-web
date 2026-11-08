@@ -1,3 +1,4 @@
+import { bonusTypes } from "./forms";
 import { LoanEstimate } from "./LoanCalculator";
 import { DateInput } from "./DateInput";
 import { useEffect, useRef, useState } from "react";
@@ -290,7 +291,7 @@ function TransactionForm({
     fields.push({
       name: "category",
       label: "Category",
-      options: (type === "income" ? ["Salary","Business","Freelance","Rental income","Investment return","Other"] : categories.filter(c=>!["Salary","Freelance","Savings"].includes(c))).map((s) => [s, s]),
+      options: (type === "income" ? ["Salary","Business","Freelance","Rental income","Investment return",...bonusTypes,"Other"] : categories.filter(c=>!["Salary","Freelance","Savings"].includes(c))).map((s) => [s, s]),
       required: true,
     });
   if (type === "transfer")
@@ -344,7 +345,7 @@ function TransactionForm({
       : defaults.amount || (editor.due && decimal(editor.due.left_paisa)) || "",
     date: t?.date || today(),
     account_id: initialAccount,
-    category: t?.category || "Other",
+    category: t?.category || defaults.category || "Other",
     transfer_fee: t?.type === "transfer" ? decimal(t.interest_paisa) : "",
     loan_id: t?.loan_id || defaults.loan_id || "",
     saving_id: t?.saving_id || defaults.saving_id || "",
