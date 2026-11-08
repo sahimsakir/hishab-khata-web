@@ -88,3 +88,35 @@ input,select{border:1px solid #dfe3ef;border-radius:10px;min-height:46px;font-si
   }
   .reporttools .date-range { flex-basis: 100%; }
 }
+
+.workspace-loader {
+  min-height: 100dvh;
+  background: radial-gradient(circle at center, #ebe7ff, #f5f6fc 230px);
+}
+.workspace-loader-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 104px;
+}
+.workspace-loader-mark::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 3px solid #ded8fb;
+  border-top-color: #3e7bdd;
+  border-right-color: #7654d7;
+  border-radius: 50%;
+  animation: workspace-loader-spin 1s linear infinite;
+}
+.workspace-loader-mark img {
+  border-radius: 19px;
+  box-shadow: 0 10px 24px #5652d640;
+}
+@keyframes workspace-loader-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-loader-mark::before { animation: none; }
+}
