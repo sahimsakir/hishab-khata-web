@@ -1,3 +1,4 @@
+import { withLoading } from "./loading";
 const base = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 let csrf: string | null = null;
 export class ApiError extends Error {
@@ -19,7 +20,11 @@ async function csrfToken() {
   csrf = (await r.json()).csrf_token as string;
   return csrf;
 }
-export async function api<T>(
+export function api<T>(path: string, method = "GET", body?: unknown): Promise<T> {
+  return withLoading(() => request<T>(path, method, body));
+}
+
+async function request<T>(
   path: string,
   method = "GET",
   body?: unknown,
@@ -40,7 +45,7 @@ export async function api<T>(
   });
   if (r.status === 419 && retry) {
     csrf = null;
-    return api<T>(path, method, body, false);
+    return request<T>(path, method, body, false);
   }
   const data = await r
     .json()

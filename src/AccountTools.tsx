@@ -1,3 +1,4 @@
+import { withLoading } from "./loading";
 import { useState } from "react";
 import { api } from "./api";
 import { DatePicker, dateText } from "./DateInput";
@@ -39,7 +40,7 @@ export function AccountTools({ account, data, refresh }: { account: MoneyRecord;
 
   async function perform(action: () => Promise<string>) {
     setBusy(true); setError(""); setMessage("");
-    try { setMessage(await action()); }
+    try { setMessage(await withLoading(action)); }
     catch (e) { setError((e as Error).message); }
     finally { setBusy(false); await refresh(); }
   }
@@ -51,7 +52,7 @@ export function AccountTools({ account, data, refresh }: { account: MoneyRecord;
       const seen = new Map<string, number>();
       const existing = new Set(ledger.map(row => JSON.stringify([row.transaction.date, row.movement])));
       const keys = new Set(data.transactions.map(t => t.idempotency_key));
-      const rows = await Promise.all(parseStatement(await file.text()).map(async row => {
+      const rows = await Promise.all(parseStatement(await withLoading(() => file.text())).map(async row => {
         const signature = JSON.stringify([row.date, row.movement, row.name]);
         const count = seen.get(signature) ?? 0;
         seen.set(signature, count + 1);

@@ -1,3 +1,4 @@
+import { WorkspaceLoader } from "./WorkspaceLoader";
 import { AccountTools } from "./AccountTools";
 import { LoanCalculator } from "./LoanCalculator";
 import { DatePicker, dateText } from "./DateInput";
@@ -35,7 +36,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { api } from "./api";
-import { AuthProvider, AuthPage, Callback, WorkspaceLoader, useAuth } from "./Auth";
+import { AuthProvider, AuthPage, Callback, useAuth } from "./Auth";
 import type {
   Kind,
   MoneyRecord,
@@ -153,12 +154,11 @@ function Workspace() {
     };
   const pageContent = () => {
     if (isProfile) return <ConnectedAccounts user={user} />;
+    if (!data && (fetching || !error)) return <WorkspaceLoader />;
     if (!data)
       return (
         <div className="empty">
-          {fetching
-            ? "Loading your finances…"
-            : "Your data could not be loaded."}
+          Your data could not be loaded.
           <button className="secondary" onClick={() => void refresh()}>
             Try again
           </button>

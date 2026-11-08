@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import { LoadingOverlay } from "./WorkspaceLoader";
 import { App } from "./App";
 import { PwaInstall } from "./PwaInstall";
 import "./style.css";
@@ -11,6 +12,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       <App />
       <PwaInstall />
+      <LoadingOverlay />
     </BrowserRouter>
   </React.StrictMode>,
 );

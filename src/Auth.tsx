@@ -8,15 +8,7 @@ import {
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { api, googleLogin } from "./api";
 import type { User } from "./types";
-export function WorkspaceLoader() {
-  return (
-    <div className="loading workspace-loader" role="status" aria-label="Loading Hishab Khata">
-      <div className="workspace-loader-mark" aria-hidden="true">
-        <img src="/icons/icon-192-v2.png" alt="" width={72} height={72} />
-      </div>
-    </div>
-  );
-}
+import { WorkspaceLoader } from "./WorkspaceLoader";
 
 const AuthContext = createContext<{
   user: User | null;
@@ -209,5 +201,5 @@ export function Callback() {
   useEffect(() => {
     void refresh().then(() => nav(linked ? "/profile?google=connected" : "/", { replace: true }));
   }, [linked]);
-  return <div className="loading">Completing Google sign-in…</div>;
+  return <WorkspaceLoader />;
 }
