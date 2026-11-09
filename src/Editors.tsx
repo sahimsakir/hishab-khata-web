@@ -15,7 +15,7 @@ import {
   categories,
   type Field,
 } from "./forms";
-import { decimal, today, parseMoney } from "./money";
+import { decimal, today, parseMoney, money } from "./money";
 import type {
   Kind,
   MoneyRecord,
@@ -260,6 +260,13 @@ function TransactionForm({
     ? sourceId
     : accountOptions[0]?.[0] || "";
   const destinationOptions = accountOptions.filter(([id]) => id !== transferSource);
+  const paymentOptions = type === "expense" ? [...accountOptions, ...options("cards")] : accountOptions;
+  const selectedAccountId = paymentOptions.some(([id]) => id === sourceId)
+    ? sourceId
+    : paymentOptions[0]?.[0] || "";
+  const selectedAccount = data.records.find(record => record.id === selectedAccountId);
+  const accountBalance = data.balances[selectedAccountId];
+
   const fields: Field[] = [
     { name: "name", label: "Description (optional)" },
     {
@@ -280,10 +287,7 @@ function TransactionForm({
         type === "savings_withdrawal"
           ? "Receiving account"
           : type === "transfer" ? "Source account" : "Payment account",
-      options: [
-        ...accountOptions,
-        ...(type === "expense" ? options("cards") : []),
-      ],
+      options: paymentOptions,
       required: true,
     },
   ];
@@ -423,11 +427,18 @@ function TransactionForm({
         </label>
         <div className="formgrid" key={type}>
           {fields.map((f) => {
-            if (type === "transfer" && f.name === "account_id") {
-              return <FieldInput key={f.name} f={f} value={transferSource} onChange={(id) => {
-                setSourceId(id);
-                if (id === destinationId) setDestinationId("");
-              }} />;
+            if (f.name === "account_id") {
+              return <div key={f.name}>
+                <FieldInput f={f} value={selectedAccountId} onChange={(id) => {
+                  setSourceId(id);
+                  if (id === destinationId) setDestinationId("");
+                }} />
+                {accountBalance !== undefined && (
+                  <p className="sub" aria-live="polite">
+                    {selectedAccount?.kind === "cards" ? "Outstanding balance" : "Current balance"}: <strong>{money(accountBalance)}</strong>
+                  </p>
+                )}
+              </div>;
             }
             if (type === "transfer" && f.name === "destination_id") {
               const value = destinationOptions.some(([id]) => id === destinationId) ? destinationId : "";
