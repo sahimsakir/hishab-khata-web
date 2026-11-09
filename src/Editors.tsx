@@ -63,7 +63,11 @@ function FieldInput({ f, defaultValue, value, onChange, readOnly }: { f: Field; 
           required={f.required}
           defaultValue={value === undefined ? defaultValue : undefined}
           value={value}
-          onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+          onChange={(event) => {
+            const input = event.currentTarget;
+            if (f.type === "number") input.value = input.value.replace(/^(-?)0+(?=\d)/, "$1");
+            onChange?.(input.value);
+          }}
           readOnly={readOnly}
           min={f.min}
           max={f.max}
@@ -342,6 +346,16 @@ function TransactionForm({
   const [savingId, setSavingId] = useState(t?.saving_id || defaults.saving_id || options("savings")[0]?.[0] || "");
   const selectedSaving = data.records.find(r=>r.id===savingId && r.kind==="savings");
   const scheduledSaving = type === "saving" && Number(selectedSaving?.data.monthly_paisa || 0) > 0;
+  function cardBalances(id: string) {
+    const card = data.records.find(record => record.id === id);
+    const outstanding = data.balances[id];
+    if (!card || outstanding === undefined) return null;
+    return <p className="sub" aria-live="polite">
+      Available credit: <strong>{money(Math.max(0, Number(card.data.limit_paisa) - outstanding))}</strong><br />
+      Outstanding balance: <strong>{money(outstanding)}</strong>
+    </p>;
+  }
+  const [cardId, setCardId] = useState(t?.card_id || defaults.card_id || options("cards")[0]?.[0] || "");
   const values: Record<string, string> = {
     name: t?.name || defaults.name || editor.due?.name || "",
     amount: t
@@ -427,15 +441,21 @@ function TransactionForm({
         </label>
         <div className="formgrid" key={type}>
           {fields.map((f) => {
+            if (f.name === "card_id") {
+              return <div key={f.name}>
+                <FieldInput f={f} value={cardId} onChange={setCardId} />
+                {cardBalances(cardId)}
+              </div>;
+            }
             if (f.name === "account_id") {
               return <div key={f.name}>
                 <FieldInput f={f} value={selectedAccountId} onChange={(id) => {
                   setSourceId(id);
                   if (id === destinationId) setDestinationId("");
                 }} />
-                {accountBalance !== undefined && (
+                {selectedAccount?.kind === "cards" ? cardBalances(selectedAccountId) : accountBalance !== undefined && (
                   <p className="sub" aria-live="polite">
-                    {selectedAccount?.kind === "cards" ? "Outstanding balance" : "Current balance"}: <strong>{money(accountBalance)}</strong>
+                    Current balance: <strong>{money(accountBalance)}</strong>
                   </p>
                 )}
               </div>;
