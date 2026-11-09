@@ -1,15 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CalendarDays } from "lucide-react";
 
 export function dateText(value: string) {
   return value.replace(/^(\d{4})-(\d{2})-(\d{2})$/, "$3-$2-$1");
-}
-
-function parseDate(text: string) {
-  if (!/^([0-9]{2})-([0-9]{2})-([0-9]{4})$/.test(text)) return "";
-  const iso = text.split("-").reverse().join("-");
-  const date = new Date(iso + "T00:00:00Z");
-  return !iso.startsWith("0000") && Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === iso ? iso : "";
 }
 
 type DateInputProps = {
@@ -22,59 +15,31 @@ type DateInputProps = {
   readOnly?: boolean;
 };
 
-export function DateInput({ name, label, value, defaultValue, onChange, required, readOnly }: DateInputProps) {
-  const [text, setText] = useState(dateText(value ?? defaultValue ?? ""));
-  useEffect(() => {
-    if (value !== undefined) setText(dateText(value));
-  }, [value]);
+export const DateInput = DatePicker;
 
-  const iso = parseDate(text);
-
-  return <>
-    <input
-      aria-label={label}
-      type="text"
-      placeholder="DD-MM-YYYY"
-      maxLength={10}
-      value={text}
-      required={required}
-      readOnly={readOnly}
-      onChange={(event) => {
-        const next = event.currentTarget.value;
-        setText(next);
-        const date = parseDate(next);
-        if (date || !next) onChange?.(date);
-      }}
-      ref={(input) => input?.setCustomValidity(text && !iso ? "Enter a valid date in DD-MM-YYYY format." : "")}
-    />
-    {name && <input type="hidden" name={name} value={iso} />}
-  </>;
-}
-
-type DatePickerProps = {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  required?: boolean;
-};
-
-export function DatePicker({ label, value, onChange, required }: DatePickerProps) {
+export function DatePicker({ name, label, value, defaultValue, onChange, required, readOnly }: DateInputProps) {
+  const [selected, setSelected] = useState(defaultValue ?? "");
   return (
     <span className="date-picker">
       <span className="date-picker-display" aria-hidden="true">
-        {dateText(value) || "DD-MM-YYYY"}
+        {dateText(value ?? selected) || "DD-MM-YYYY"}
         <CalendarDays size={16} />
       </span>
       <input
         type="date"
         aria-label={label}
-        value={value}
+        name={name}
+        value={value ?? selected}
+        readOnly={readOnly}
         required={required}
-        onChange={(event) => onChange(event.currentTarget.value)}
+        onChange={(event) => {
+          setSelected(event.currentTarget.value);
+          onChange?.(event.currentTarget.value);
+        }}
         onClick={(event) => {
           const input = event.currentTarget;
-          if (typeof input.showPicker === "function") {
-            input.showPicker();
+          if (!readOnly && typeof input.showPicker === "function") {
+            try { input.showPicker(); } catch { /* Native control remains available. */ }
           }
         }}
       />
