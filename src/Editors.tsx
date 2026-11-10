@@ -33,7 +33,7 @@ export type Editor =
       defaults?: Partial<TxInput>;
       due?: Due;
     };
-function FieldInput({ f, defaultValue, value, onChange, readOnly }: { f: Field; defaultValue?: string; value?: string; onChange?: (value: string) => void; readOnly?: boolean }) {
+function FieldInput({ f, defaultValue, value, onChange, readOnly, amountWarning }: { amountWarning?: boolean; f: Field; defaultValue?: string; value?: string; onChange?: (value: string) => void; readOnly?: boolean }) {
   return (
     <label>
       {f.label}
@@ -60,6 +60,8 @@ function FieldInput({ f, defaultValue, value, onChange, readOnly }: { f: Field; 
         <input
           name={f.name}
           type={f.type || "text"}
+          aria-describedby={amountWarning ? "transaction-balance-warning" : undefined}
+          style={amountWarning ? { color: "#b42318", borderColor: "#b42318" } : undefined}
           required={f.required}
           defaultValue={value === undefined ? defaultValue : undefined}
           value={value}
@@ -370,6 +372,21 @@ function TransactionForm({
     card_id: t?.card_id || defaults.card_id || "",
     principal: t ? decimal(t.principal_paisa) : "",
   };
+  const [amount, setAmount] = useState(values.amount);
+  const outgoingTypes = ["expense", "loan_payment", "card_payment", "saving", "transfer"];
+  const usesCredit = selectedAccount?.kind === "cards";
+  let amountWarning = false;
+  if (outgoingTypes.includes(type) && accountBalance !== undefined && amount) {
+    const originalDebit = t && t.account_id === selectedAccountId && outgoingTypes.includes(t.type)
+      ? t.amount_paisa + (t.type === "transfer" ? t.interest_paisa : 0) : 0;
+    const available = usesCredit ? Number(selectedAccount.data.limit_paisa) - accountBalance : accountBalance;
+    try {
+      amountWarning = parseMoney(amount) > Math.max(0, available + originalDebit);
+    } catch {
+      // The form validates incomplete or invalid amounts separately.
+    }
+  }
+
   return (
     <>
 
@@ -441,6 +458,14 @@ function TransactionForm({
         </label>
         <div className="formgrid" key={type}>
           {fields.map((f) => {
+            if (f.name === "amount") {
+              return <div key={f.name}>
+                <FieldInput f={f} value={amount} onChange={setAmount} amountWarning={amountWarning} />
+                {amountWarning && <p id="transaction-balance-warning" className="sub" role="status" style={{ color: "#b42318" }}>
+                  {usesCredit ? "Amount exceeds available credit." : "Amount exceeds the selected account balance."}
+                </p>}
+              </div>;
+            }
             if (f.name === "card_id") {
               return <div key={f.name}>
                 <FieldInput f={f} value={cardId} onChange={setCardId} />
