@@ -262,14 +262,13 @@ function TransactionForm({
   const initialAccount = t?.account_id || defaults.account_id || accountOptions[0]?.[0] || "";
   const [sourceId, setSourceId] = useState(initialAccount);
   const [destinationId, setDestinationId] = useState(t?.destination_id || defaults.destination_id || "");
-  const transferSource = accountOptions.some(([id]) => id === sourceId)
-    ? sourceId
-    : accountOptions[0]?.[0] || "";
-  const destinationOptions = accountOptions.filter(([id]) => id !== transferSource);
-  const paymentOptions = type === "expense" ? [...accountOptions, ...options("cards")] : accountOptions;
+  const paymentOptions = type === "expense" || type === "transfer"
+    ? [...accountOptions, ...options("cards")]
+    : accountOptions;
   const selectedAccountId = paymentOptions.some(([id]) => id === sourceId)
     ? sourceId
     : paymentOptions[0]?.[0] || "";
+  const destinationOptions = paymentOptions.filter(([id]) => id !== selectedAccountId);
   const selectedAccount = data.records.find(record => record.id === selectedAccountId);
   const accountBalance = data.balances[selectedAccountId];
 
@@ -487,7 +486,10 @@ function TransactionForm({
             }
             if (type === "transfer" && f.name === "destination_id") {
               const value = destinationOptions.some(([id]) => id === destinationId) ? destinationId : "";
-              return <FieldInput key={f.name} f={f} value={value} onChange={setDestinationId} />;
+              return <div key={f.name}>
+                <FieldInput f={f} value={value} onChange={setDestinationId} />
+                {data.records.some(record => record.id === value && record.kind === "cards") && cardBalances(value)}
+              </div>;
             }
             return (
             <FieldInput
